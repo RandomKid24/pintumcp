@@ -105,12 +105,29 @@ def send_notification(
     result = {"notification": False, "sound": False, "platform": SYSTEM}
     try:
         if SYSTEM == "Darwin":
-            script = f'display notification "{message}" with title "{title}"'
-            subprocess.run(
-                ["osascript", "-e", script],
-                check=True, capture_output=True,
-            )
-            result["notification"] = True
+            # Escape quotes for AppleScript
+            safe_title = title.replace('"', '\\"')
+            safe_msg = message.replace('"', '\\"')
+            # Use terminal-notifier for proper toast popup if available
+            if shutil.which("terminal-notifier"):
+                subprocess.Popen(
+                    ["terminal-notifier",
+                     "-title", title,
+                     "-message", message,
+                     "-appIcon", "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertNoteIcon.icns",
+                     "-sound", "Glass"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                result["notification"] = True
+            else:
+                # osascript display notification — shows in Notification Center
+                script = f'display notification "{safe_msg}" with title "{safe_title}" sound name "Glass"'
+                subprocess.run(
+                    ["osascript", "-e", script],
+                    check=True, capture_output=True,
+                )
+                result["notification"] = True
         elif SYSTEM == "Windows":
             try:
                 from winotify import Notification, audio

@@ -35,7 +35,8 @@ function detect() {
       name: "MiMoCode",
       configPath: mimocodeCfg,
       format: "jsonc",
-      mcpKey: 'mcpServers',
+      mcpKey: "mcp",
+      mimocodeFormat: true,
     });
   }
 
@@ -58,6 +59,7 @@ function detect() {
       configPath: claudeDesktopCfg,
       format: "json",
       mcpKey: "mcpServers",
+      claudeFormat: true,
     });
   }
 
@@ -70,6 +72,7 @@ function detect() {
       configPath: claudeCodeCfg,
       format: "json",
       mcpKey: "mcpServers",
+      claudeFormat: true,
     });
   } else if (fs.existsSync(claudeCodeCfgAlt)) {
     tools.push({
@@ -77,6 +80,7 @@ function detect() {
       configPath: claudeCodeCfgAlt,
       format: "json",
       mcpKey: "mcpServers",
+      claudeFormat: true,
     });
   }
 

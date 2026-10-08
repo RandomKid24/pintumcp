@@ -10,11 +10,17 @@ function buildMcpEntry(pythonPath, serverPath) {
   };
 }
 
+// MiMoCode uses: { "type": "local", "command": ["python", "server.py"] }
+function buildMimocodeEntry(pythonPath, serverPath) {
+  return {
+    type: "local",
+    command: [pythonPath, serverPath],
+  };
+}
+
 function readJsonc(filePath) {
   let raw = fs.readFileSync(filePath, "utf-8");
-  // Strip single-line comments
   raw = raw.replace(/^\s*\/\/.*$/gm, "");
-  // Strip trailing commas before } or ]
   raw = raw.replace(/,(\s*[}\]])/g, "$1");
   return JSON.parse(raw);
 }
@@ -24,12 +30,10 @@ function writeJson(filePath, data) {
 }
 
 function writeJsonc(filePath, data) {
-  // Preserve original comments by doing a merge on the raw text
   let raw = "";
   if (fs.existsSync(filePath)) {
     raw = fs.readFileSync(filePath, "utf-8");
   }
-  // Simple approach: parse, merge, write as JSON (comments are lost but safe)
   let existing = {};
   try {
     existing = readJsonc(filePath);
@@ -39,7 +43,6 @@ function writeJsonc(filePath, data) {
 }
 
 function configureJsonMcpServers(tool, pythonPath, serverPath) {
-  const entry = buildMcpEntry(pythonPath, serverPath);
   let data = {};
 
   if (fs.existsSync(tool.configPath)) {
@@ -54,7 +57,17 @@ function configureJsonMcpServers(tool, pythonPath, serverPath) {
     data[tool.mcpKey] = {};
   }
 
-  data[tool.mcpKey][MCP_NAME] = entry;
+  // Build entry based on tool type
+  if (tool.mimocodeFormat) {
+    data[tool.mcpKey][MCP_NAME] = buildMimocodeEntry(pythonPath, serverPath);
+    // Remove stale mcpServers key if present
+    delete data["mcpServers"];
+  } else if (tool.claudeFormat) {
+    // Claude Desktop uses mcpServers with command + args
+    data[tool.mcpKey][MCP_NAME] = buildMcpEntry(pythonPath, serverPath);
+  } else {
+    data[tool.mcpKey][MCP_NAME] = buildMcpEntry(pythonPath, serverPath);
+  }
 
   if (tool.format === "jsonc") {
     writeJsonc(tool.configPath, data);
