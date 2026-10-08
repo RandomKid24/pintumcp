@@ -1,0 +1,8 @@
+{
+  "default_title": "Agent Alert",
+  "default_sound": "default",
+  "sound_enabled": true,
+  "notification_enabled": true,
+  "volume": 80,
+  "always_sound_with_notification": true
+}

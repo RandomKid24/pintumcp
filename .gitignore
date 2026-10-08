@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+npm/.venv/
+.mimocode/
+.DS_Store
+*.swp
+*.save
