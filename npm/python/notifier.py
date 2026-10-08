@@ -1,6 +1,7 @@
 """Cross-platform desktop notifications with gentle, native sounds."""
 
 import json
+import importlib.util
 import platform
 import shutil
 import subprocess
@@ -9,6 +10,7 @@ from pathlib import Path
 
 
 SYSTEM = platform.system()
+ICON_PATH = Path(__file__).parent / "assets" / "pintumcp-icon.png"
 
 # These are deliberately short system sounds. Avoid alarms, fanfares, and
 # terminal bells, which are disruptive during normal agent work.
@@ -20,14 +22,74 @@ MACOS_SOUNDS = {
     "complete": "Glass",
 }
 
+def _check_notification_backend() -> dict:
+    if SYSTEM == "Darwin":
+        ready = bool(shutil.which("osascript"))
+        return {"ready": ready, "detail": "JXA Notification Center", "fix": "macOS includes osascript"}
+    if SYSTEM == "Windows":
+        ready = importlib.util.find_spec("winotify") is not None
+        return {
+            "ready": ready,
+            "detail": "winotify native toast",
+            "fix": "Run `pintumcp install` to install winotify.",
+        }
+    if SYSTEM == "Linux":
+        ready = bool(shutil.which("notify-send"))
+        return {
+            "ready": ready,
+            "detail": "notify-send desktop notification",
+            "fix": "Install libnotify-bin (Debian/Ubuntu) or your distribution's libnotify package.",
+        }
+    return {"ready": False, "detail": f"Unsupported platform: {SYSTEM}", "fix": "Use macOS, Windows, or Linux."}
+
+
+def _check_sound_backend() -> dict:
+    if SYSTEM == "Darwin":
+        ready = Path("/System/Library/Sounds/Glass.aiff").exists()
+        return {"ready": ready, "detail": "macOS Glass sound", "fix": "macOS system sounds are built in."}
+    if SYSTEM == "Windows":
+        return {"ready": True, "detail": "Windows SystemNotification sound", "fix": "Windows sound support is built in."}
+    if SYSTEM == "Linux":
+        ready = bool(shutil.which("canberra-gtk-play")) or (
+            bool(shutil.which("paplay"))
+            and Path("/usr/share/sounds/freedesktop/stereo/message.oga").exists()
+        )
+        return {
+            "ready": ready,
+            "detail": "desktop message sound",
+            "fix": "Install libcanberra-gtk3-module or PulseAudio utilities with freedesktop sounds.",
+        }
+    return {"ready": False, "detail": f"Unsupported platform: {SYSTEM}", "fix": "Use macOS, Windows, or Linux."}
+
+
+def doctor(send_test: bool = True) -> dict:
+    """Check local popup, sound, and icon readiness; optionally send a test alert."""
+    checks = {
+        "icon": {"ready": ICON_PATH.is_file(), "path": str(ICON_PATH)},
+        "notification": _check_notification_backend(),
+        "sound": _check_sound_backend(),
+    }
+    result = {
+        "platform": SYSTEM,
+        "checks": checks,
+        "ready": all(check["ready"] for check in checks.values()),
+    }
+    if send_test:
+        result["test_delivery"] = send_notification(
+            "pintumcp doctor", "Local notification test", sound="default", volume=35
+        )
+    return result
+
 
 def _macos_notify(title: str, message: str) -> bool:
     """Submit a native macOS Notification Center notification through JXA."""
     script = f"""
 ObjC.import("Foundation");
+ObjC.import("AppKit");
 const notification = $.NSUserNotification.alloc.init;
 notification.title = $({json.dumps(title)});
 notification.informativeText = $({json.dumps(message)});
+notification.contentImage = $.NSImage.alloc.initWithContentsOfFile($({json.dumps(str(ICON_PATH))}));
 $.NSUserNotificationCenter.defaultUserNotificationCenter.deliverNotification(notification);
 """
     try:
@@ -94,7 +156,10 @@ def _windows_notify(title: str, message: str) -> bool:
     try:
         from winotify import Notification
 
-        Notification(app_id="pintumcp", title=title, msg=message).show()
+        notification_args = {"app_id": "pintumcp", "title": title, "msg": message}
+        if ICON_PATH.exists():
+            notification_args["icon"] = str(ICON_PATH)
+        Notification(**notification_args).show()
         return True
     except (ImportError, OSError, RuntimeError) as error:
         print(
@@ -115,7 +180,7 @@ def _linux_notify(title: str, message: str) -> bool:
         return False
     try:
         subprocess.run(
-            ["notify-send", "--urgency=normal", title, message],
+            ["notify-send", "--urgency=normal", f"--icon={ICON_PATH}", title, message],
             check=True,
             capture_output=True,
             text=True,

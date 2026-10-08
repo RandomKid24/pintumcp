@@ -86,15 +86,17 @@ Every notification **always plays sound**. You will hear it.
 
 ## MCP Tools
 
-Six tools for every agent situation:
+Seven local tools for every agent situation:
 
 | Tool | When to use | Sound |
 |------|------------|-------|
 | `alert_notify` | Full control — title, message, priority, sound | Configurable |
 | `notify` | Quick alert — just title + message | Default chime |
 | `ping` | Sound only — get attention without a popup | Configurable |
+| `doctor` | Verify local popup, sound, and icon readiness | Gentle test chime |
 | `agent_done` | Work finished successfully | Success chime |
 | `agent_question` | Agent needs your input | Attention ping |
+| `agent_approval` | Agent needs your approval before continuing | Attention ping |
 | `agent_error` | Something went wrong | Error tone |
 
 ### Usage Examples
@@ -102,17 +104,25 @@ Six tools for every agent situation:
 In any AI agent conversation, the agent can call:
 
 ```
-# Task complete
-agent_done("Built and tested the auth module. All 47 tests pass.")
+# Task complete — waits three seconds so matching completions can be combined
+agent_done("Built and tested the auth module. All 47 tests pass.", project="API", agent="Agent 2")
 
 # Need input
-agent_question("Should I use PostgreSQL or MongoDB for this service?")
+agent_question("Should I use PostgreSQL or MongoDB for this service?", project="API", agent="Agent 2")
+
+# Approval needed before a consequential action
+agent_approval("Approve deploying version 2.4.0 to production?")
 
 # Something broke
 agent_error("Build failed: missing dependency 'lodash' in package.json")
+
+# Verify this machine can show the popup, play the sound, and load the icon
+doctor()
 ```
 
-You'll see a notification and hear the sound immediately — even if you're in a different app.
+Questions, approvals, and errors appear immediately. Completion alerts wait three seconds: matching project/agent completions become one concise popup instead of several interruptions. Labels are optional, and existing calls remain valid.
+
+Everything runs locally inside the MCP process started by your AI tool. There is no account, cloud backend, database, or separate service to run.
 
 ---
 
@@ -194,6 +204,7 @@ export PINTUMCP_VOLUME=100
 | Python not found | Install Python 3.10+ and ensure `python3` is in PATH |
 | Tool not detected | Run `npx github:RandomKid24/pintumcp detect` to check |
 | Config not taking effect | Restart the AI tool — MCP servers load at startup |
+| Unsure whether alerts work | Call the MCP `doctor()` tool; it checks local dependencies and sends a labelled test alert |
 
 ---
 

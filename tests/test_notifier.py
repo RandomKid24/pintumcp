@@ -14,6 +14,27 @@ import notifier  # noqa: E402
 
 
 class NotifierTests(unittest.TestCase):
+    def test_doctor_reports_local_backends_and_runs_a_labelled_test(self):
+        """Removing doctor checks or its real delivery probe must fail this test."""
+        send = MagicMock(
+            return_value={"notification": True, "sound": True, "platform": "Linux"}
+        )
+        with patch.object(notifier, "SYSTEM", "Linux"), patch.object(
+            notifier.shutil,
+            "which",
+            side_effect=lambda name: "/usr/bin/" + name
+            if name in {"notify-send", "canberra-gtk-play"}
+            else None,
+        ), patch.object(notifier, "send_notification", send):
+            result = notifier.doctor(send_test=True)
+
+        self.assertTrue(result["ready"])
+        self.assertTrue(result["checks"]["icon"]["ready"])
+        self.assertTrue(result["test_delivery"]["notification"])
+        send.assert_called_once_with(
+            "pintumcp doctor", "Local notification test", sound="default", volume=35
+        )
+
     def test_macos_submits_a_native_notification(self):
         """Replacing the JXA Notification Center call must fail this test."""
         run = MagicMock()
@@ -27,6 +48,7 @@ class NotifierTests(unittest.TestCase):
         self.assertEqual(command[:4], ["osascript", "-l", "JavaScript", "-e"])
         self.assertIn("NSUserNotificationCenter", command[4])
         self.assertIn('"Build complete"', command[4])
+        self.assertIn("pintumcp-icon.png", command[4])
 
     def test_windows_uses_the_quiet_system_notification_sound(self):
         """Replacing the system notification sound with a raw beep must fail this test."""

@@ -5,7 +5,8 @@ when they finish work, need attention, or encounter errors.
 """
 
 from mcp.server.mcpserver import MCPServer
-from notifier import alert, send_notification, play_sound
+from events import completion_dispatcher, deliver_event
+from notifier import alert, doctor as notification_doctor, send_notification, play_sound
 from config import get
 
 mcp = MCPServer(
@@ -56,48 +57,63 @@ def ping(sound: str = "default") -> dict:
 
 
 @mcp.tool()
-def agent_done(message: str = "Agent has finished the task successfully!") -> dict:
+def doctor(send_test: bool = True) -> dict:
+    """Check local popup, sound, and icon readiness; optionally send a test alert."""
+    return notification_doctor(send_test)
+
+
+@mcp.tool()
+def agent_done(
+    message: str = "Agent has finished the task successfully!",
+    project: str | None = None,
+    agent: str | None = None,
+) -> dict:
     """Notify the user that the agent completed its work.
 
     Plays a success chime and shows a desktop notification.
     """
-    return alert(
-        title="Agent: Task Complete",
-        message=message,
-        priority="normal",
-        sound="success",
-        volume=get("volume", 80),
+    return completion_dispatcher.queue_completion(
+        message, get("volume", 80), project, agent
     )
 
 
 @mcp.tool()
-def agent_question(message: str = "Agent has a question for you!") -> dict:
+def agent_question(
+    message: str = "Agent has a question for you!",
+    project: str | None = None,
+    agent: str | None = None,
+) -> dict:
     """Notify the user that the agent needs input or has a question.
 
     Plays an attention sound and shows a desktop notification.
     """
-    return alert(
-        title="Agent: Input Needed",
-        message=message,
-        priority="normal",
-        sound="attention",
-        volume=get("volume", 80),
-    )
+    return deliver_event("question", message, get("volume", 80), project, agent)
 
 
 @mcp.tool()
-def agent_error(message: str = "Agent encountered an error!") -> dict:
+def agent_approval(
+    message: str = "Agent needs your approval before continuing.",
+    project: str | None = None,
+    agent: str | None = None,
+) -> dict:
+    """Notify the user immediately that an agent needs approval to continue.
+
+    Use this before any action that needs explicit user authorization.
+    """
+    return deliver_event("approval", message, get("volume", 80), project, agent)
+
+
+@mcp.tool()
+def agent_error(
+    message: str = "Agent encountered an error!",
+    project: str | None = None,
+    agent: str | None = None,
+) -> dict:
     """Notify the user that the agent hit an error.
 
     Plays an error sound and shows a desktop notification.
     """
-    return alert(
-        title="Agent: Error",
-        message=message,
-        priority="critical",
-        sound="error",
-        volume=get("volume", 80),
-    )
+    return deliver_event("error", message, get("volume", 80), project, agent)
 
 
 if __name__ == "__main__":
