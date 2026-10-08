@@ -120,7 +120,9 @@ agent_error("Build failed: missing dependency 'lodash' in package.json")
 doctor()
 ```
 
-Questions, approvals, and errors appear immediately. Completion alerts wait three seconds: matching project/agent completions become one concise popup instead of several interruptions. Labels are optional, and existing calls remain valid.
+Questions, approvals, and errors appear immediately (identical repeats within 5 seconds are dropped). Completion alerts wait three seconds: completions for the same project become one concise popup — even when they come from agents running in separate AI apps or sessions on your machine. Labels are optional, and existing calls remain valid. Pending completions are sent right away if the server exits.
+
+The server also tells your AI tool *when* to call each alert (via MCP server instructions), so no prompt or `CLAUDE.md` setup is needed.
 
 Everything runs locally inside the MCP process started by your AI tool. There is no account, cloud backend, database, or separate service to run.
 
@@ -133,6 +135,7 @@ npx github:RandomKid24/pintumcp              # Install + configure everything
 npx github:RandomKid24/pintumcp install      # Same as above
 npx github:RandomKid24/pintumcp detect       # Scan for AI tools (read-only, no changes)
 npx github:RandomKid24/pintumcp test         # Send a test notification + sound
+npx github:RandomKid24/pintumcp doctor       # Check popup, sound and icon readiness
 npx github:RandomKid24/pintumcp run          # Start MCP server manually (stdio mode)
 npx github:RandomKid24/pintumcp help         # Show help
 ```
@@ -204,7 +207,7 @@ export PINTUMCP_VOLUME=100
 | Python not found | Install Python 3.10+ and ensure `python3` is in PATH |
 | Tool not detected | Run `npx github:RandomKid24/pintumcp detect` to check |
 | Config not taking effect | Restart the AI tool — MCP servers load at startup |
-| Unsure whether alerts work | Call the MCP `doctor()` tool; it checks local dependencies and sends a labelled test alert |
+| Unsure whether alerts work | Run `npx github:RandomKid24/pintumcp doctor` (or call the MCP `doctor()` tool); it checks local dependencies and sends a test alert |
 
 ---
 

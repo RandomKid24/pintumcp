@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from threading import Lock, Timer
+import atexit
+import hashlib
+import json
+import os
+import sys
+import tempfile
+import time
+from pathlib import Path
+from threading import Timer
 from typing import Callable
 
 from notifier import alert
@@ -14,6 +22,11 @@ EVENT_DETAILS = {
     "approval": ("Approval Needed", "normal", "attention"),
     "error": ("Error", "critical", "error"),
 }
+
+DELAY_SECONDS = 3
+DEDUPE_SECONDS = 5
+MAX_LISTED = 5
+_recent: dict[tuple[str, str], float] = {}
 
 
 def clean_label(value: str | None) -> str | None:
@@ -48,8 +61,13 @@ def deliver_event(
         _, priority, sound = EVENT_DETAILS[event]
     except KeyError as error:
         raise ValueError(f"Unsupported agent event: {event}") from error
+    title = format_event_title(event, project, agent)
+    now = time.monotonic()
+    if now - _recent.get((title, message), -DEDUPE_SECONDS) < DEDUPE_SECONDS:
+        return {"notification": False, "sound": False, "duplicate": True}
+    _recent[(title, message)] = now
     return alert(
-        title=format_event_title(event, project, agent),
+        title=title,
         message=message,
         priority=priority,
         sound=sound,
@@ -58,17 +76,30 @@ def deliver_event(
 
 
 class CompletionDispatcher:
-    """Group same-label completion events into a short local summary."""
+    """Bundle completions into one popup, across every MCP server on this machine.
+
+    Each completion is a small file in a per-user temp spool. Whichever server's
+    timer fires first claims (atomic rename) every file for that project and sends
+    one summary; the others find nothing left. No daemon, lock, or backend.
+    """
 
     def __init__(
         self,
-        deliver: Callable[[str, str, int, str | None, str | None], dict] = deliver_event,
+        deliver: Callable[..., dict] = deliver_event,
         timer_factory: Callable[..., Timer] = Timer,
+        spool: Path | None = None,
     ) -> None:
         self._deliver = deliver
         self._timer_factory = timer_factory
-        self._lock = Lock()
-        self._pending: dict[tuple[str | None, str | None], dict] = {}
+        uid = os.getuid() if hasattr(os, "getuid") else "user"
+        self._spool = spool or Path(tempfile.gettempdir()) / f"pintumcp-{uid}"
+        self._spool.mkdir(mode=0o700, exist_ok=True)
+        self._timers: dict[str, Timer] = {}
+        self._seq = 0
+
+    @staticmethod
+    def _key(project: str | None) -> str:
+        return hashlib.sha1((clean_label(project) or "").encode()).hexdigest()[:12]
 
     def queue_completion(
         self,
@@ -77,30 +108,66 @@ class CompletionDispatcher:
         project: str | None = None,
         agent: str | None = None,
     ) -> dict:
-        """Queue a completion for a three-second, process-local bundle."""
-        key = (clean_label(project), clean_label(agent))
-        with self._lock:
-            bucket = self._pending.setdefault(
-                key,
-                {"messages": [], "volume": volume},
-            )
-            bucket["messages"].append(message)
-            if len(bucket["messages"]) == 1:
-                timer = self._timer_factory(3, self.flush_completion, args=(key,))
-                timer.daemon = True
-                bucket["timer"] = timer
-                timer.start()
-        return {"queued": True, "delay_seconds": 3}
+        """Spool a completion and schedule a flush three seconds from now."""
+        key = self._key(project)
+        self._seq += 1
+        entry = {
+            "message": message,
+            "volume": volume,
+            "project": clean_label(project),
+            "agent": clean_label(agent),
+        }
+        name = f"{key}.{time.time_ns()}.{os.getpid()}.{self._seq}.json"
+        (self._spool / name).write_text(json.dumps(entry), encoding="utf-8")
+        if key not in self._timers:
+            timer = self._timer_factory(DELAY_SECONDS, self.flush_completion, args=(key,))
+            timer.daemon = True
+            self._timers[key] = timer
+            timer.start()
+        return {"queued": True, "delay_seconds": DELAY_SECONDS}
 
-    def flush_completion(self, key: tuple[str | None, str | None]) -> dict | None:
-        """Send and remove one pending bundle exactly once."""
-        with self._lock:
-            bucket = self._pending.pop(key, None)
-        if bucket is None:
+    def flush_completion(self, key: str) -> dict | None:
+        """Claim and send everything spooled for one project, exactly once."""
+        self._timers.pop(key, None)
+        entries = []
+        for path in sorted(self._spool.glob(f"{key}.*.json")):
+            claimed = path.with_suffix(f".{os.getpid()}.claimed")
+            try:
+                path.rename(claimed)  # atomic: only one process wins each file
+                entries.append(json.loads(claimed.read_text(encoding="utf-8")))
+                claimed.unlink()
+            except (OSError, ValueError):
+                continue
+        if not entries:
             return None
-        messages = bucket["messages"]
-        message = messages[0] if len(messages) == 1 else f"{len(messages)} agents completed: {'; '.join(messages[:5])}"
-        return self._deliver("done", message, bucket["volume"], key[0], key[1])
+        project = entries[0]["project"]
+        agents = {e["agent"] for e in entries if e["agent"]}
+        agent = next(iter(agents)) if len(agents) == 1 else None
+        messages = [
+            f"{e['agent']}: {e['message']}" if len(agents) > 1 and e["agent"] else e["message"]
+            for e in entries
+        ]
+        if len(messages) == 1:
+            text = messages[0]
+        else:
+            extra = len(messages) - MAX_LISTED
+            text = f"{len(messages)} tasks completed: " + "; ".join(messages[:MAX_LISTED])
+            text += f"; +{extra} more" if extra > 0 else ""
+        try:
+            result = self._deliver("done", text, max(e["volume"] for e in entries), project, agent)
+        except Exception as error:  # timer threads swallow exceptions; make failures visible
+            print(f"[pintumcp] completion alert failed: {error}", file=sys.stderr)
+            return None
+        if not result.get("notification"):
+            print("[pintumcp] completion popup was not shown; run doctor", file=sys.stderr)
+        return result
+
+    def flush_all(self) -> None:
+        """Send this process's pending completions now (used at interpreter exit)."""
+        for key, timer in list(self._timers.items()):
+            timer.cancel()
+            self.flush_completion(key)
 
 
 completion_dispatcher = CompletionDispatcher()
+atexit.register(completion_dispatcher.flush_all)

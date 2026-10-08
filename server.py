@@ -12,6 +12,12 @@ from config import get
 mcp = MCPServer(
     "Agent Alerts",
     description="Desktop notifications with sound for AI agent events",
+    instructions=(
+        "Alert the user so they need not watch the screen. Call agent_approval before any "
+        "action needing their authorization, agent_question when blocked on their input, "
+        "agent_error when work fails, and agent_done once when a task finishes (completions "
+        "are bundled). Pass project and agent when running several agents in parallel."
+    ),
 )
 
 

@@ -156,6 +156,23 @@ function cmdTest() {
   }
 }
 
+function cmdDoctor() {
+  // notifier.py is stdlib-only, so the system Python works even before `install`.
+  const py = fs.existsSync(getVenvPython()) ? getVenvPython() : getSystemPython();
+  if (!py) {
+    console.error("  Error: Python 3 not found. Install Python first.");
+    process.exit(1);
+  }
+  try {
+    execSync(`"${py}" -c "import json; from notifier import doctor; print(json.dumps(doctor(), indent=2))"`, {
+      cwd: PYTHON_DIR,
+      stdio: "inherit",
+    });
+  } catch {
+    process.exit(1);
+  }
+}
+
 function cmdRun() {
   const pythonPath = getVenvPython();
   if (!fs.existsSync(pythonPath)) {
@@ -186,6 +203,7 @@ Usage:
   npx pintumcp install      Install Python env + configure tools
   npx pintumcp detect       Scan for installed AI coding tools
   npx pintumcp test         Send a test notification
+  npx pintumcp doctor       Check popup, sound and icon; send a test alert
   npx pintumcp run          Start MCP server (stdio mode)
   npx pintumcp help         Show this help
 
@@ -213,6 +231,9 @@ switch (cmd) {
     break;
   case "test":
     cmdTest();
+    break;
+  case "doctor":
+    cmdDoctor();
     break;
   case "run":
     cmdRun();
