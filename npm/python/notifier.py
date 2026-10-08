@@ -96,25 +96,16 @@ def play_sound(sound_name: str = "default", volume: int = 80) -> bool:
 
 
 def _macos_notify(title: str, message: str) -> bool:
-    """Show a notification on macOS using multiple methods for reliability."""
-    # Method 1: rumps (proper native macOS notification center notification)
-    try:
-        import rumps
-        rumps.notification(title, "", message, sound=True)
-        return True
-    except ImportError:
-        pass
-    except Exception:
-        pass
+    """Show a notification popup on macOS."""
+    safe_title = title.replace('"', '\\"')
+    safe_msg = message.replace('"', '\\"')
 
-    # Method 2: terminal-notifier (proper toast if installed)
-    if shutil.which("terminal-notifier"):
+    # Use the Alert.app bundle — launched via `open` which has full GUI access
+    alert_app = Path(__file__).parent / "Alert.app"
+    if alert_app.exists():
         try:
             subprocess.Popen(
-                ["terminal-notifier",
-                 "-title", title,
-                 "-message", message,
-                 "-sound", "Glass"],
+                ["open", str(alert_app), "--args", safe_title, safe_msg],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
@@ -122,15 +113,17 @@ def _macos_notify(title: str, message: str) -> bool:
         except Exception:
             pass
 
-    # Method 3: osascript display notification (fallback)
+    # Fallback: osascript display dialog
+    script = (
+        f'display dialog "{safe_msg}" with title "{safe_title}" '
+        f'buttons {{"OK"}} default button "OK" giving up after 10'
+    )
     try:
-        safe_title = title.replace('"', '\\"').replace("\\", "\\\\")
-        safe_msg = message.replace('"', '\\"').replace("\\", "\\\\")
-        script = f'display notification "{safe_msg}" with title "{safe_title}" sound name "Glass"'
         subprocess.Popen(
             ["osascript", "-e", script],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            start_new_session=True,
         )
         return True
     except Exception:

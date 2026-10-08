@@ -1,0 +1,6 @@
+#!/bin/bash
+# pintumcp Alert — shows a dialog popup
+TITLE="${1:-Agent Alert}"
+MESSAGE="${2:-Notification from agent}"
+
+osascript -e "display dialog \"$MESSAGE\" with title \"$TITLE\" buttons {\"OK\"} default button \"OK\" giving up after 10"
