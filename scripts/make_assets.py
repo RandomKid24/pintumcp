@@ -68,6 +68,21 @@ def transparent_gif(path, names, px=16, pad=2):
 
 
 transparent_gif(ROOT / "assets/transparent/pintu-pet.gif", pet["sequence"])
+
+# Drop-in transparent twins of assets/icons/*.png (same 512px canvas and scale, pet only),
+# plus a small animated GIF per pose: it hops, and sparkles blink.
+(ROOT / "assets/transparent/icons").mkdir(exist_ok=True)
+for event in ("done", "question", "approval", "error"):
+    s = sprite(event, 22)
+    canvas = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
+    canvas.alpha_composite(s, ((512 - s.width) // 2, (512 - s.height) // 2))
+    canvas.save(ROOT / f"assets/transparent/icons/{event}.png")
+
+    rows = pet["frames"][event]
+    hop = ["." * len(rows[0])] + [r.replace("Y", ".") for r in rows[:-1]]  # up one pixel, no sparkles
+    pet["frames"][f"{event}_hop"] = hop
+    pet.setdefault("tints", {})[f"{event}_hop"] = pet["tints"].get(event, {})
+    transparent_gif(ROOT / f"assets/transparent/pintu-{event}.gif", [event, f"{event}_hop"])
 (ROOT / "assets/icons").mkdir(exist_ok=True)
 for event in ("done", "question", "approval", "error"):
     squircle(compose(event, 512, 22)).save(ROOT / f"assets/icons/{event}.png")

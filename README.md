@@ -75,7 +75,7 @@ Each alert type has its own mascot pose, and labelled titles tell parallel agent
 <p align="center">
   <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/alert-preview.png" width="560" alt="Illustration of pintumcp notifications for task complete, approval needed and error">
 </p>
-<p align="center"><sub>Windows and Linux use their native toast and notify-send. Transparent-background versions of the pet, GIF and preview are in <a href="assets/transparent">assets/transparent</a>.</sub></p>
+<p align="center"><sub>Windows and Linux use their native toast and notify-send. Transparent-background pet icons, animated per-pose GIFs and a preview are in <a href="assets/transparent">assets/transparent</a>.</sub></p>
 
 On macOS, install [terminal-notifier](https://github.com/julienXX/terminal-notifier) (`brew install terminal-notifier`) and clicking a popup brings you back to the app running the agent. It is optional; `doctor` tells you whether it is active.
 
