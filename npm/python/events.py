@@ -9,6 +9,7 @@ import os
 import sys
 import tempfile
 import time
+import uuid
 from datetime import datetime, time as dtime
 from pathlib import Path
 from threading import Timer
@@ -124,7 +125,6 @@ class CompletionDispatcher:
         self._spool = spool or Path(tempfile.gettempdir()) / f"pintumcp-{uid}"
         self._spool.mkdir(mode=0o700, exist_ok=True)
         self._timers: dict[str, Timer] = {}
-        self._seq = 0
 
     @staticmethod
     def _key(project: str | None) -> str:
@@ -139,15 +139,16 @@ class CompletionDispatcher:
     ) -> dict:
         """Spool a completion and schedule a flush three seconds from now."""
         key = self._key(project)
-        self._seq += 1
         entry = {
             "message": message,
             "volume": volume,
             "project": clean_label(project),
             "agent": clean_label(agent),
         }
-        name = f"{key}.{time.time_ns()}.{os.getpid()}.{self._seq}.json"
-        (self._spool / name).write_text(json.dumps(entry), encoding="utf-8")
+        # uuid, not pid/counter: Windows' coarse clock can repeat time_ns across callers
+        name = f"{key}.{time.time_ns()}.{uuid.uuid4().hex[:8]}.json"
+        with open(self._spool / name, "x", encoding="utf-8") as f:
+            json.dump(entry, f)
         if key not in self._timers:
             timer = self._timer_factory(DELAY_SECONDS, self.flush_completion, args=(key,))
             timer.daemon = True
