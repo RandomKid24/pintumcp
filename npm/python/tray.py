@@ -1,17 +1,22 @@
-"""macOS menu-bar app: every agent and its status, with Pintu's face.
+"""macOS menu-bar app: a dashboard of every agent and its status, with Pintu's face.
 
 Run: python tray.py   (or `npx pintumcp tray`)
-It only reads the files the MCP server writes (see status.py); nothing is sent anywhere.
+Click Pintu in the menu bar to open the panel. It only reads the files the MCP server
+writes (see status.py); nothing is sent anywhere.
 """
 
+import json
 import subprocess
+import time
 from pathlib import Path
 
 import status
 
-ICONS = Path(__file__).parent / "assets" / "menubar"
+HERE = Path(__file__).parent
+ICONS = HERE / "assets" / "menubar"
 SIZE = (18, 16)  # points; the PNGs are exactly 2x
 NEEDS_YOU = ("approval", "error", "question")
+WIDTH = 520
 
 
 def icon_for(state: str) -> str:
@@ -19,7 +24,7 @@ def icon_for(state: str) -> str:
     return str(path if path.exists() else ICONS / "empty.png")
 
 
-def bar_state(items: list[dict]) -> tuple[str, str]:
+def bar_state(items: list) -> tuple:
     """Icon state and badge text for the menu bar: the most urgent agent, and how many need you."""
     if not items:
         return "empty", ""
@@ -27,43 +32,133 @@ def bar_state(items: list[dict]) -> tuple[str, str]:
     return items[0]["state"], str(waiting) if waiting else ""
 
 
+def agent_key(item: dict) -> str:
+    return item["project"] + "|" + item["agent"]
+
+
+def payload(items: list = None, now: float = None) -> dict:
+    """What the panel page renders: agents (most urgent first) and the Today card."""
+    items = status.snapshot() if items is None else items
+    now = time.time() if now is None else now
+    agents = [{"key": agent_key(i), "name": status.describe(i)["name"], "state": i["state"],
+               "message": i["message"], "in_state": i["in_state"], "age": i["age"], "stale": i["stale"]}
+              for i in items]
+    return {"now": now, "agents": agents, "today": status.today_stats(now)}
+
+
 def main() -> None:
-    import rumps
+    import objc
+    from Cocoa import (NSApplication, NSApplicationActivationPolicyAccessory, NSBackingStoreBuffered, NSColor,
+                       NSEvent, NSImage, NSMakeRect, NSObject, NSPanel, NSScreen, NSStatusBar, NSStatusWindowLevel,
+                       NSTimer, NSVariableStatusItemLength)
+    from Foundation import NSURL
+    from WebKit import WKUserContentController, WKWebView, WKWebViewConfiguration
 
-    app = rumps.App("pintumcp", icon=icon_for("empty"), template=False, quit_button=None)
-    shown = {"signature": None}
+    class Panel(NSPanel):
+        def canBecomeKeyWindow(self):  # borderless windows refuse key status by default
+            return True
 
-    def focus(app_id):
-        def callback(_):
-            if app_id:
-                subprocess.run(["open", "-b", app_id], check=False)
-        return callback
+    class App(NSObject, protocols=[objc.protocolNamed("WKScriptMessageHandler")]):
+        def applicationDidFinishLaunching_(self, _note):
+            self.items = []
+            self.height = 600
+            self.last_icon = None
+            bar = NSStatusBar.systemStatusBar()
+            self.item = bar.statusItemWithLength_(NSVariableStatusItemLength)
+            self.item.button().setTarget_(self)
+            self.item.button().setAction_("toggle:")
 
-    def clear(_):
-        status.clear_finished()
+            config = WKWebViewConfiguration.alloc().init()
+            controller = WKUserContentController.alloc().init()
+            controller.addScriptMessageHandler_name_(self, "pintu")
+            config.setUserContentController_(controller)
+            self.web = WKWebView.alloc().initWithFrame_configuration_(NSMakeRect(0, 0, WIDTH, self.height), config)
+            self.web.setValue_forKey_(False, "drawsBackground")  # let the panel's rounded corners show
+            page = HERE / "panel.html"
+            self.web.loadFileURL_allowingReadAccessToURL_(NSURL.fileURLWithPath_(str(page)),
+                                                          NSURL.fileURLWithPath_(str(HERE)))
 
-    def refresh(_):
-        items = status.snapshot()
-        rows = [(status.describe(i), i.get("app")) for i in items]
-        signature = tuple((r["name"], r["status"], r["message"], r["state"]) for r, _ in rows)
-        if signature == shown["signature"]:
-            return  # rebuilding every second would close an open menu
-        shown["signature"] = signature
-        state, badge = bar_state(items)
-        app.icon, app.title = icon_for(state), badge
-        menu = [rumps.MenuItem(f"pintumcp: {len(rows)} agent{'s' if len(rows) != 1 else ''}"
-                               if rows else "pintumcp: no agents yet"), None]
-        for row, app_id in rows:
-            menu.append(rumps.MenuItem(f"{row['name']}: {row['status']}", callback=focus(app_id),
-                                       icon=icon_for(row["state"]), dimensions=SIZE))
-            if row["message"]:
-                menu.append(rumps.MenuItem(f"      {row['message']}"))
-        menu += [None, rumps.MenuItem("Clear finished", callback=clear),
-                 rumps.MenuItem("Quit", callback=rumps.quit_application)]
-        app.menu.clear()
-        app.menu = menu
+            self.win = Panel.alloc().initWithContentRect_styleMask_backing_defer_(
+                NSMakeRect(0, 0, WIDTH, self.height), 0, NSBackingStoreBuffered, False)
+            self.win.setOpaque_(False)
+            self.win.setBackgroundColor_(NSColor.clearColor())
+            self.win.setHasShadow_(True)
+            self.win.setLevel_(NSStatusWindowLevel)
+            self.win.setContentView_(self.web)
+            self.win.setReleasedWhenClosed_(False)
+            # click anywhere outside the panel to dismiss it
+            NSEvent.addGlobalMonitorForEventsMatchingMask_handler_((1 << 1) | (1 << 3), lambda e: self.hide())
 
-    rumps.Timer(refresh, 1).start()
+            NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(1.0, self, "tick:", None, True)
+            self.tick_(None)
+
+        # ---- panel
+        def toggle_(self, _sender):
+            self.hide() if self.win.isVisible() else self.show()
+
+        @objc.python_method
+        def show(self):
+            frame = self.item.button().window().frame()
+            screen = NSScreen.mainScreen().frame()
+            x = min(max(frame.origin.x + frame.size.width / 2 - WIDTH / 2, 8), screen.size.width - WIDTH - 8)
+            self.win.setFrame_display_(NSMakeRect(x, frame.origin.y - self.height - 6, WIDTH, self.height), True)
+            self.push()
+            self.win.makeKeyAndOrderFront_(None)
+
+        @objc.python_method
+        def hide(self):
+            self.win.orderOut_(None)
+
+        @objc.python_method
+        def resize(self, height):
+            self.height = max(200, min(int(height), 820))
+            if self.win.isVisible():
+                top = self.win.frame().origin.y + self.win.frame().size.height
+                self.win.setFrame_display_(NSMakeRect(self.win.frame().origin.x, top - self.height, WIDTH, self.height), True)
+                self.win.invalidateShadow()
+
+        # ---- data
+        @objc.python_method
+        def push(self):
+            self.web.evaluateJavaScript_completionHandler_(
+                "window.render && window.render(" + json.dumps(payload(self.items)) + ")", None)
+
+        def tick_(self, _timer):
+            self.items = status.snapshot()
+            state, badge = bar_state(self.items)
+            if (state, badge) != self.last_icon:
+                self.last_icon = (state, badge)
+                image = NSImage.alloc().initWithContentsOfFile_(icon_for(state))
+                image.setSize_(SIZE)
+                self.item.button().setImage_(image)
+                self.item.button().setTitle_(" " + badge if badge else "")
+            if self.win.isVisible():
+                self.push()
+
+        # ---- messages from the page
+        def userContentController_didReceiveScriptMessage_(self, _controller, message):
+            body = message.body()
+            kind = body.get("type")
+            if kind == "size":
+                self.resize(body.get("height", self.height))
+            elif kind == "focus":
+                for item in self.items:
+                    if agent_key(item) == body.get("key") and item.get("app"):
+                        subprocess.run(["open", "-b", item["app"]], check=False)
+                        self.hide()
+            elif kind == "clear":
+                status.clear_finished()
+                self.tick_(None)
+            elif kind == "doctor":
+                import events
+                events.deliver_event("done", "Test alert from the menu bar", 40, "pintumcp", "menu bar")
+            elif kind == "quit":
+                NSApplication.sharedApplication().terminate_(None)
+
+    app = NSApplication.sharedApplication()
+    app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)  # no Dock icon
+    delegate = App.alloc().init()
+    app.setDelegate_(delegate)
     app.run()
 
 

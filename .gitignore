@@ -6,3 +6,4 @@ npm/.venv/
 .DS_Store
 *.swp
 *.save
+.claude/

@@ -173,3 +173,12 @@ faces_sheet()
 for state, face in {"working": "thinking", "question": "question", "approval": "approval",
                     "error": "error", "done": "done", "idle": "sleepy", "empty": "idle"}.items():
     sprite(face, 2).save(ROOT / f"assets/menubar/{state}.png")
+
+
+# Animated Pintu per agent state for the dashboard panel (transparent GIFs, copied under state names).
+import shutil
+
+(ROOT / "assets/pet").mkdir(exist_ok=True)
+for state, src in {"working": "thinking", "question": "question", "approval": "approval", "error": "error",
+                   "done": "done", "idle": "sleepy", "empty": "pet", "wave": "pet"}.items():
+    shutil.copy(ROOT / f"assets/transparent/previews/pintu-{src}.gif", ROOT / f"assets/pet/{state}.gif")

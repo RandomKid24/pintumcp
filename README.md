@@ -202,17 +202,13 @@ On macOS, install [terminal-notifier](https://github.com/julienXX/terminal-notif
 
 ## Agent Status Board (macOS menu bar)
 
-A tiny app that puts Pintu in your menu bar and shows **every agent and what it is doing**, each with its own face:
+A small app that puts Pintu in your menu bar. Click him and a dark dashboard drops down:
 
-| Agent | Status | Pintu |
-|---|---|---|
-| API · Agent 1 | Working, 4m | thinking |
-| API · Agent 2 | Needs approval | hand up `!` |
-| Web · Agent 1 | Needs your input | `?` |
-| Docs · Agent 1 | Done | cheering |
-| Web · Agent 2 | Error | red |
+- **Needs you / Working now** cards: how many agents are waiting on you, and how many are busy (with the longest run).
+- **Agents**: every agent as a row with its own animated Pintu face, a status pill (Working, Needs input, Needs approval, Error, Done), a live timer and its latest message. Click a row to jump back to that agent's app.
+- **Today**: tasks finished, errors, an hour-by-hour chart, and the longest run.
 
-The menu-bar icon shows the most urgent agent, with a number for how many need you. Click a row to jump back to that agent's app.
+The menu-bar icon itself shows the most urgent agent's face, with a number for how many need you.
 
 ```bash
 npx pintumcp tray            # Pintu appears in the menu bar
@@ -225,7 +221,7 @@ npx pintumcp hooks install   # optional: Claude Code reports its status by itsel
 - The MCP tools you already have: `agent_working`, `agent_question`, `agent_approval`, `agent_error`, `agent_done`, plus `agent_status` for silent progress notes. Pass `project` and `agent` so rows have good names; without them each AI session gets its own "Session 1234" row.
 - Claude Code hooks (optional, `hooks install`): Claude Code reports "working", "needs permission / input" and "done" automatically, so it shows up even if the AI never calls a tool. `hooks remove` undoes it, and your settings file is backed up first.
 
-Limits: an agent only shows up if it reports, and an agent that goes quiet while "working" for 10 minutes is flagged as maybe stuck. Everything stays on your machine, in small files under `~/.pintumcp/agents`. The menu-bar app is macOS-only for now; Windows and Linux builds are planned.
+Limits: an agent only shows up if it reports, and an agent that goes quiet while "working" for 10 minutes is flagged as maybe stuck. Everything stays on your machine, in small files under `~/.pintumcp/agents`. The dashboard is macOS-only for now; Windows and Linux builds are planned.
 
 ---
 

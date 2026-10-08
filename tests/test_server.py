@@ -47,7 +47,7 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(rows[("Web", "Agent 1")], ("done", "Built web"))
 
     def test_npm_copy_matches_root(self):
-        for name in ("server.py", "notifier.py", "events.py", "config.py", "status.py", "tray.py", "hook.py"):
+        for name in ("server.py", "notifier.py", "events.py", "config.py", "status.py", "tray.py", "hook.py", "panel.html"):
             self.assertTrue(
                 filecmp.cmp(ROOT / name, ROOT / "npm/python" / name, shallow=False),
                 f"npm/python/{name} drifted; run scripts/sync.sh",

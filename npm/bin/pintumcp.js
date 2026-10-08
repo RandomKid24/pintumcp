@@ -54,7 +54,7 @@ function setupVenv() {
       dependencies.push('"winotify>=1.1.0"');
     }
     if (process.platform === "darwin") {
-      dependencies.push('"rumps>=0.4"');
+      dependencies.push('"pyobjc-framework-WebKit>=10"');
     }
     console.log("  Installing notification dependencies...");
     execSync(`"${getVenvPython()}" -m pip install ${dependencies.join(" ")} --quiet`, {
@@ -222,10 +222,10 @@ function cmdTray(sub) {
     process.exit(1);
   }
   try {
-    execSync(`"${py}" -c "import rumps"`, { stdio: "ignore" });
+    execSync(`"${py}" -c "import WebKit"`, { stdio: "ignore" });
   } catch {
-    console.log("Installing the menu-bar dependency (rumps)...");
-    execSync(`"${py}" -m pip install "rumps>=0.4" --quiet`, { stdio: "inherit" });
+    console.log("Installing the menu-bar dependency (pyobjc WebKit)...");
+    execSync(`"${py}" -m pip install "pyobjc-framework-WebKit>=10" --quiet`, { stdio: "inherit" });
   }
   try { execSync("pkill -f python/tray.py", { stdio: "ignore" }); } catch {}
   const child = spawn(py, [path.join(PYTHON_DIR, "tray.py")], { detached: true, stdio: "ignore", cwd: PYTHON_DIR });

@@ -45,18 +45,38 @@ def identity(project: str | None, agent: str | None) -> tuple[str, str]:
     return ("", f"Session {os.getpid() % 10000}")
 
 
+HISTORY_MAX = 512 * 1024  # bytes; the log is trimmed to its newest half past this
+
+
+def _path(project: str, agent: str) -> Path:
+    return _dir() / (hashlib.sha1((project + "|" + agent).encode()).hexdigest()[:12] + ".json")
+
+
+def _log_transition(entry: dict) -> None:
+    """Append a state change to history.jsonl (used for the Today card). Best effort."""
+    path = root() / "history.jsonl"
+    line = json.dumps({k: entry[k] for k in ("updated", "project", "agent", "state")}) + "\n"
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(line)
+    if path.stat().st_size > HISTORY_MAX:
+        lines = path.read_text(encoding="utf-8").splitlines(True)
+        path.write_text("".join(lines[len(lines) // 2:]), encoding="utf-8")
+
+
 def update(state: str, message: str = "", project: str | None = None,
            agent: str | None = None, app: str | None = None, now: float | None = None) -> bool:
     """Record an agent's latest state. Returns False (never raises) if it could not."""
     try:
         project, agent = identity(project, agent)
         now = time.time() if now is None else now
-        path = _dir() / f"{hashlib.sha1(f'{project}|{agent}'.encode()).hexdigest()[:12]}.json"
+        path = _path(project, agent)
         since = now
+        changed = True
         try:
             old = json.loads(path.read_text(encoding="utf-8"))
             if old.get("state") == state:
                 since = old.get("since", now)
+                changed = False
             app = app or old.get("app")
         except (OSError, ValueError):
             pass
@@ -66,6 +86,8 @@ def update(state: str, message: str = "", project: str | None = None,
         tmp = path.with_suffix(f".{os.getpid()}.tmp")
         tmp.write_text(json.dumps(entry), encoding="utf-8")
         os.replace(tmp, path)  # atomic: the reader never sees half a file
+        if changed:
+            _log_transition(entry)
         return True
     except OSError:
         return False
@@ -101,7 +123,7 @@ def snapshot(now: float | None = None) -> list[dict]:
 def clear_finished() -> None:
     for item in snapshot():
         if item["state"] in ("done", "idle"):
-            (_dir() / f"{hashlib.sha1(f'{item['project']}|{item['agent']}'.encode()).hexdigest()[:12]}.json").unlink(missing_ok=True)
+            _path(item["project"], item["agent"]).unlink(missing_ok=True)
 
 
 def format_age(seconds: float) -> str:
@@ -126,3 +148,41 @@ def describe(item: dict) -> dict:
     if item["stale"]:
         status += " (quiet, maybe stuck?)"
     return {"name": name, "status": status, "message": item["message"][:70], "state": state}
+
+
+def today_stats(now: float | None = None, hours: int = 12) -> dict:
+    """Numbers for the Today card, from history.jsonl: finished, errors, hourly trend, longest run."""
+    now = time.time() if now is None else now
+    day_start = now - 24 * 3600
+    events = []
+    try:
+        for line in (root() / "history.jsonl").read_text(encoding="utf-8").splitlines():
+            try:
+                e = json.loads(line)
+                if e["updated"] >= day_start:
+                    events.append(e)
+            except (ValueError, KeyError):
+                continue
+    except OSError:
+        pass
+    events.sort(key=lambda e: e["updated"])
+    trend = [0] * hours
+    done = errors = 0
+    longest = 0.0
+    started: dict[tuple, float] = {}
+    for e in events:
+        key = (e["project"], e["agent"])
+        if e["state"] == "working":
+            started.setdefault(key, e["updated"])
+        elif key in started:
+            longest = max(longest, e["updated"] - started.pop(key))
+        if e["state"] == "done":
+            done += 1
+            bucket = int((now - e["updated"]) // 3600)
+            if bucket < hours:
+                trend[hours - 1 - bucket] += 1
+        elif e["state"] == "error":
+            errors += 1
+    for t in started.values():
+        longest = max(longest, now - t)  # still running
+    return {"done": done, "errors": errors, "trend": trend, "longest": format_age(longest) if longest else "-"}

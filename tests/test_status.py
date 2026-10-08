@@ -77,6 +77,30 @@ class StatusTests(unittest.TestCase):
         status.clear_finished()
         self.assertEqual([r["agent"] for r in status.snapshot()], ["B"])
 
+    def test_today_stats_count_finished_errors_trend_and_longest_run(self):
+        status.update("working", "w", "API", "A", now=0)
+        status.update("done", "d", "API", "A", now=3600 + 1800)       # ran 1h30m, done 30m ago
+        status.update("working", "w", "API", "B", now=7000)           # still running at "now"
+        status.update("error", "e", "Web", "A", now=8000)
+        stats = status.today_stats(now=3600 * 3)                      # "now" = 3h
+        self.assertEqual((stats["done"], stats["errors"]), (1, 1))
+        self.assertEqual(stats["longest"], "1h 30m")
+        self.assertEqual(sum(stats["trend"]), 1)
+        self.assertEqual(stats["trend"][-2], 1)                       # finished in the previous hour... 1h30m ago
+
+    def test_same_state_updates_are_not_logged_twice(self):
+        status.update("working", "a", "API", "A", now=10)
+        status.update("working", "b", "API", "A", now=20)
+        lines = (status.root() / "history.jsonl").read_text().splitlines()
+        self.assertEqual(len(lines), 1)
+
+    def test_history_is_trimmed_when_it_grows_too_large(self):
+        with unittest.mock.patch.object(status, "HISTORY_MAX", 300):
+            for n in range(20):
+                status.update("working" if n % 2 else "done", "x", "API", "A", now=n)
+        size = (status.root() / "history.jsonl").stat().st_size
+        self.assertLess(size, 600)
+
 
 if __name__ == "__main__":
     import unittest.mock  # noqa: F401

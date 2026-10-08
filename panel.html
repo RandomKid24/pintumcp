@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pintumcp</title>
+<style>
+  :root {
+    --bg: #000; --card: #131316; --card-2: #1b1b20; --line: rgba(255,255,255,.07);
+    --text: #f5f5f7; --muted: #8e8e93;
+    --working: #4da3ff; --question: #ffb830; --approval: #ff8a3d; --error: #ff5c5c; --done: #3ddc97; --idle: #8e8e93;
+    --teal: #48d6be;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: transparent; }
+  body { font: 14px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; color: var(--text);
+         -webkit-font-smoothing: antialiased; user-select: none; cursor: default; }
+  .panel { width: 520px; margin: 0 auto; background: var(--bg); border-radius: 28px; padding: 18px 18px 14px;
+           border: 1px solid var(--line); }
+  header { display: flex; align-items: center; gap: 10px; padding: 2px 6px 14px; }
+  header img { width: 40px; height: 36px; image-rendering: pixelated; }
+  header h1 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; flex: 1; }
+  .chip { font-size: 12px; color: var(--muted); background: var(--card); border-radius: 999px; padding: 4px 10px; }
+  .menu-btn { background: var(--card); border: 0; color: var(--text); width: 30px; height: 30px; border-radius: 50%;
+              font-size: 16px; line-height: 1; cursor: pointer; position: relative; }
+  .menu-btn:hover { background: var(--card-2); }
+  .dropdown { position: absolute; right: 24px; top: 60px; background: var(--card-2); border: 1px solid var(--line);
+              border-radius: 14px; padding: 6px; display: none; z-index: 5; min-width: 170px; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
+  .dropdown.open { display: block; }
+  .dropdown button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--text);
+                     padding: 9px 12px; border-radius: 9px; font-size: 14px; cursor: pointer; }
+  .dropdown button:hover { background: rgba(255,255,255,.08); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .card { background: var(--card); border-radius: 22px; padding: 16px 16px 14px; border: 1px solid var(--line); }
+  .card h2 { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--muted)); box-shadow: 0 0 10px var(--c, transparent); }
+  .big { font-size: 40px; font-weight: 700; letter-spacing: -.02em; margin: 8px 0 2px; color: var(--c, var(--text)); }
+  .big small { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+  .sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .agents { padding: 6px 8px; margin-bottom: 12px; max-height: 330px; overflow-y: auto; scrollbar-width: none; }
+  .agents::-webkit-scrollbar { display: none; }
+  .agents h2 { padding: 10px 8px 6px; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 9px 8px; border-radius: 16px; cursor: pointer; }
+  .row:hover { background: rgba(255,255,255,.05); }
+  .row + .row { border-top: 1px solid var(--line); }
+  .face { width: 46px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 14px;
+          background: color-mix(in srgb, var(--c) 14%, transparent); }
+  .face img { width: 40px; height: 36px; image-rendering: pixelated; }
+  .who { flex: 1; min-width: 0; }
+  .name { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .msg { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .right { text-align: right; flex: none; }
+  .pill { display: inline-block; font-size: 11.5px; font-weight: 600; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent);
+          border-radius: 999px; padding: 3px 9px; }
+  .time { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--text); margin-top: 4px; }
+  .stuck { color: var(--question); font-size: 11.5px; }
+  .empty { text-align: center; padding: 22px 20px 26px; color: var(--muted); font-size: 13px; }
+  .empty img { width: 80px; image-rendering: pixelated; display: block; margin: 0 auto 8px; }
+  .empty code { background: var(--card-2); border-radius: 6px; padding: 1px 6px; color: var(--text); }
+  .today .top { display: flex; align-items: baseline; justify-content: space-between; }
+  .today .stat { font-size: 13px; color: var(--muted); }
+  .today .stat b { color: var(--text); font-size: 15px; }
+  .bars { display: flex; align-items: flex-end; gap: 6px; height: 54px; margin-top: 12px; }
+  .bars i { flex: 1; background: var(--teal); border-radius: 5px 5px 2px 2px; min-height: 4px; opacity: .9; }
+  .bars i.zero { background: var(--card-2); opacity: 1; }
+  .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; }
+  footer { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px; padding: 12px 8px 0; }
+</style>
+</head>
+<body>
+<div class="panel" id="panel">
+  <header>
+    <img id="logo" src="assets/pet/wave.gif" alt="Pintu">
+    <h1>AI Agents</h1>
+    <span class="chip" id="count">0 agents</span>
+    <button class="menu-btn" id="menu-btn" aria-label="Menu">&middot;&middot;&middot;</button>
+  </header>
+  <div class="dropdown" id="dropdown">
+    <button data-act="clear">Clear finished</button>
+    <button data-act="doctor">Send test alert</button>
+    <button data-act="quit">Quit pintumcp</button>
+  </div>
+
+  <div class="grid">
+    <div class="card" id="needs"></div>
+    <div class="card" id="working"></div>
+  </div>
+
+  <div class="card agents" id="agents"></div>
+
+  <div class="card today" id="today"></div>
+
+  <footer><span>pintumcp</span><span id="updated"></span></footer>
+</div>
+
+<script>
+const COLOR = {working: "var(--working)", question: "var(--question)", approval: "var(--approval)",
+               error: "var(--error)", done: "var(--done)", idle: "var(--idle)"};
+const LABEL = {working: "Working", question: "Needs input", approval: "Needs approval",
+               error: "Error", done: "Done", idle: "Idle"};
+const $ = (id) => document.getElementById(id);
+let skew = 0, current = null;
+
+const post = (msg) => { if (window.webkit?.messageHandlers?.pintu) window.webkit.messageHandlers.pintu.postMessage(msg); };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const now = () => Date.now() / 1000 - skew;
+
+function clock(sec) {                       // 4:12 or 1:12:05
+  sec = Math.max(0, Math.floor(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
+}
+function ago(sec) {
+  sec = Math.floor(sec);
+  if (sec < 45) return "just now";
+  const m = Math.max(1, Math.floor(sec / 60));
+  return m < 60 ? `${m}m ago` : `${Math.floor(m / 60)}h ${m % 60}m ago`;
+}
+
+function render(data) {
+  current = data;
+  skew = Date.now() / 1000 - data.now;
+  const agents = data.agents;
+  const needs = agents.filter((a) => ["approval", "error", "question"].includes(a.state));
+  const working = agents.filter((a) => a.state === "working");
+
+  $("count").textContent = `${agents.length} agent${agents.length === 1 ? "" : "s"}`;
+  $("logo").src = `assets/pet/${needs.length ? needs[0].state : working.length ? "working" : agents.length ? "done" : "wave"}.gif`;
+
+  const urgent = needs.length ? needs[0].state : null;
+  $("needs").style.setProperty("--c", urgent ? COLOR[urgent] : COLOR.done);
+  $("needs").innerHTML = `<h2><span class="dot"></span>Needs you</h2>
+    <div class="big">${needs.length || "All clear"}${needs.length ? `<small>agent${needs.length === 1 ? "" : "s"}</small>` : ""}</div>
+    <div class="sub">${needs.length ? esc(needs.map((a) => a.name).join(", ")) : "Nobody is waiting on you"}</div>`;
+
+  $("working").style.setProperty("--c", COLOR.working);
+  const longest = working.reduce((m, a) => Math.max(m, a.in_state), 0);
+  $("working").innerHTML = `<h2><span class="dot"></span>Working now</h2>
+    <div class="big">${working.length}<small>agent${working.length === 1 ? "" : "s"}</small></div>
+    <div class="sub">${working.length ? `Longest run <span data-since="${now() - longest}">${clock(longest)}</span>` : "Nothing running"}</div>`;
+
+  if (!agents.length) {
+    $("agents").innerHTML = `<div class="empty"><img src="assets/pet/empty.gif" alt="">No agents yet.<br>
+      Ask an agent to call <code>agent_working</code>, or run <code>pintumcp hooks install</code>.</div>`;
+  } else {
+    $("agents").innerHTML = `<h2>Agents</h2>` + agents.map((a) => `
+      <div class="row" data-key="${esc(a.key)}" style="--c:${COLOR[a.state] || COLOR.idle}">
+        <div class="face"><img src="assets/pet/${a.state}.gif" alt=""></div>
+        <div class="who"><div class="name">${esc(a.name)}</div><div class="msg">${esc(a.message) || "&nbsp;"}</div></div>
+        <div class="right">
+          <span class="pill">${LABEL[a.state] || a.state}</span>
+          <div class="time">${a.state === "working"
+            ? `<span data-since="${data.now - a.in_state}">${clock(a.in_state)}</span>`
+            : `<span data-ago="${data.now - a.age}">${ago(a.age)}</span>`}</div>
+          ${a.stale ? `<div class="stuck">quiet, maybe stuck?</div>` : ""}
+        </div>
+      </div>`).join("");
+  }
+
+  const t = data.today, peak = Math.max(1, ...t.trend);
+  $("today").innerHTML = `<div class="top"><h2>Today</h2>
+      <div class="stat"><b>${t.done}</b> done &nbsp;·&nbsp; <b style="color:${t.errors ? "var(--error)" : "inherit"}">${t.errors}</b> error${t.errors === 1 ? "" : "s"}</div></div>
+    <div class="bars">${t.trend.map((n) => `<i class="${n ? "" : "zero"}" style="height:${n ? Math.max(14, n / peak * 100) : 8}%" title="${n} done"></i>`).join("")}</div>
+    <div class="axis"><span>${t.trend.length}h ago</span><span>Longest run ${esc(t.longest)}</span><span>now</span></div>`;
+  $("updated").textContent = "updated just now";
+}
+
+setInterval(() => {                         // live timers without asking Python every second
+  if (!current) return;
+  document.querySelectorAll("[data-since]").forEach((el) => { el.textContent = clock(now() - +el.dataset.since); });
+  document.querySelectorAll("[data-ago]").forEach((el) => { el.textContent = ago(now() - +el.dataset.ago); });
+}, 1000);
+
+$("agents").addEventListener("click", (e) => { const r = e.target.closest(".row"); if (r) post({type: "focus", key: r.dataset.key}); });
+$("menu-btn").addEventListener("click", (e) => { e.stopPropagation(); $("dropdown").classList.toggle("open"); });
+document.addEventListener("click", () => $("dropdown").classList.remove("open"));
+$("dropdown").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) post({type: b.dataset.act}); });
+
+window.render = render;
+new ResizeObserver(() => post({type: "size", height: $("panel").offsetHeight})).observe($("panel"));
+if (!window.webkit) {                      // browser preview with sample data
+  const t = Date.now() / 1000;
+  const A = (name, state, message, inState, age, extra = {}) => ({key: name, name, state, message, in_state: inState, age, stale: false, ...extra});
+  render({now: t, agents: [
+    A("API · Agent 2", "approval", "Deploy v2.4.0 to production?", 95, 95),
+    A("Web · Agent 2", "error", "Build failed: missing dependency 'lodash'", 410, 410),
+    A("Web · Agent 1", "question", "Postgres or Mongo for the sessions table?", 160, 160),
+    A("API · Agent 1", "working", "Refactoring the auth module", 252, 40),
+    A("Docs · Agent 1", "done", "47 tests pass. Ready to review.", 600, 600),
+    A("Infra · Agent 1", "working", "Migrating the staging database", 1260, 780, {stale: true}),
+  ], today: {done: 12, errors: 2, trend: [0, 1, 0, 2, 1, 3, 0, 1, 2, 1, 0, 1], longest: "1h 12m"}});
+}
+</script>
+</body>
+</html>
