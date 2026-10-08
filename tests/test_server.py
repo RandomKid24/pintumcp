@@ -21,7 +21,7 @@ class ServerTests(unittest.TestCase):
         tools = {t.name for t in asyncio.run(server.mcp.list_tools())}
         self.assertEqual(
             tools,
-            {"alert_notify", "notify", "ping", "doctor", "agent_done",
+            {"alert_notify", "notify", "ping", "doctor", "agent_done", "agent_working",
              "agent_question", "agent_approval", "agent_error"},
         )
 

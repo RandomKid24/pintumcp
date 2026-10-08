@@ -16,7 +16,7 @@ mcp = MCPServer(
         "Alert the user so they need not watch the screen. Call agent_approval before any "
         "action needing their authorization, agent_question when blocked on their input, "
         "agent_error when work fails, and agent_done once when a task finishes (completions "
-        "are bundled). Pass project and agent when running several agents in parallel."
+        "are bundled). Call agent_working at the start of a task that will take minutes (silent). Pass project and agent when running several agents in parallel."
     ),
 )
 
@@ -81,6 +81,19 @@ def agent_done(
     return completion_dispatcher.queue_completion(
         message, get("volume", 80), project, agent
     )
+
+
+@mcp.tool()
+def agent_working(
+    message: str = "Agent started a long task.",
+    project: str | None = None,
+    agent: str | None = None,
+) -> dict:
+    """Silent heads-up that a long task has started (shows the thinking face).
+
+    Use it only for tasks that will take minutes; finish with agent_done.
+    """
+    return deliver_event("working", message, get("volume", 80), project, agent)
 
 
 @mcp.tool()

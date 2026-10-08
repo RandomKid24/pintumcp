@@ -87,12 +87,14 @@ Pintu is the little pixel-art mascot of pintumcp: the one who taps you on the sh
 |---|---|
 | `idle`, `blink`, `waveA`, `waveB` | Waves hello while `install`, `test` and `doctor` run |
 | `done` | `doctor` when everything is ready; the Task Complete popup |
-| `party` | The end of `install`, with confetti |
+| `party` | A bundle of **3 or more** completions in one popup; the end of `install`, with confetti |
+| `thinking` | The silent "Started" popup from `agent_working` |
+| `sleepy` | Any popup that arrives during your **quiet hours** (silent, so he is asleep too) |
 | `wink` | After `test` sends its sample alert |
 | `sad` | The end of `uninstall`: "bye for now" |
 | `error` | `doctor` or `test` when something is wrong; the Error popup |
 | `question`, `approval` | The Input Needed and Approval Needed popups |
-| `wink`, `surprised`, `sleepy`, `love`, `thinking`, `angry`, `dizzy`, `cool` | Free to use in your own docs, slides and stickers |
+| `wink`, `surprised`, `love`, `angry`, `dizzy`, `cool` | Free to use in your own docs, slides and stickers |
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/pintumcp-pet.gif" width="180" alt="pintumcp mascot waving">
@@ -172,7 +174,7 @@ He also waves hello when you run `install`, `test` or `doctor` in a terminal, an
 
 **Transparent versions.** Pintu on his own, with no background, for slides, docs and stickers. They live in [`assets/transparent`](assets/transparent) and are split into two folders:
 
-- [`icons/`](assets/transparent/icons): the four mood icons (`done`, `question`, `approval`, `error`) at 512px, same size and scale as the app icons, plus every other face as `pintu-<face>.png`.
+- [`icons/`](assets/transparent/icons): the four mood icons (`done`, `question`, `approval`, `error`) at 512px, same size and scale as the app icons, plus `thinking`, `sleepy` and `party`, and every other face as `pintu-<face>.png`.
 - [`previews/`](assets/transparent/previews): animated GIFs of Pintu (`pintu-pet.gif` plus a bouncing GIF for each face), `pintu-faces.png` (the face sheet without labels) and `alert-preview.png`, the popup cards without a backdrop.
 
 All of them are generated from one sprite builder: edit `scripts/build_pet.py`, then run `python3 scripts/build_pet.py && python3 scripts/make_assets.py`, and every icon, GIF and terminal animation updates together.
@@ -229,7 +231,7 @@ Every notification **always plays sound**. You will hear it.
 
 ## MCP Tools
 
-Seven local tools for every agent situation:
+Eight local tools for every agent situation:
 
 | Tool | When to use | Sound |
 |------|------------|-------|
@@ -237,6 +239,7 @@ Seven local tools for every agent situation:
 | `notify` | Quick alert — just title + message | Default chime |
 | `ping` | Sound only — get attention without a popup | Configurable |
 | `doctor` | Verify local popup, sound, and icon readiness | Gentle test chime |
+| `agent_working` | A long task just started (silent heads-up, thinking face) | None |
 | `agent_done` | Work finished successfully | Success chime |
 | `agent_question` | Agent needs your input | Attention ping |
 | `agent_approval` | Agent needs your approval before continuing | Attention ping |
@@ -247,6 +250,9 @@ Seven local tools for every agent situation:
 In any AI agent conversation, the agent can call:
 
 ```
+# Starting something that will take minutes? A silent heads-up
+agent_working("Refactoring the auth module", project="API", agent="Agent 2")
+
 # Task complete — waits three seconds so matching completions can be combined
 agent_done("Built and tested the auth module. All 47 tests pass.", project="API", agent="Agent 2")
 
@@ -357,6 +363,7 @@ export PINTUMCP_VOLUME=100
 | Python not found | Install Python 3.10+ and ensure `python3` is in PATH |
 | Tool not detected | Run `npx github:RandomKid24/pintumcp detect` to check |
 | Config not taking effect | Restart the AI tool — MCP servers load at startup |
+| Popups never appear | `doctor` reports whether a macOS Focus is on (it can only read this with Full Disk Access; otherwise it says "unknown" — check Control Center) |
 | Unsure whether alerts work | Run `npx github:RandomKid24/pintumcp doctor` (or call the MCP `doctor()` tool); it checks local dependencies and sends a test alert |
 
 ---

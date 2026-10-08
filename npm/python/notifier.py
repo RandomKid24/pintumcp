@@ -80,7 +80,16 @@ def doctor(send_test: bool = True) -> dict:
     }
     if SYSTEM == "Darwin":
         focus = bool(_terminal_notifier())
+        state = macos_focus()
         result["optional"] = {
+            "focus_mode": {
+                "ready": state != "on",
+                "state": state or "unknown",
+                "fix": {
+                    "on": "A Focus is on, so macOS hides popups. Turn it off in Control Center, or allow pintumcp in the Focus settings.",
+                    None: "Can't read Focus state without Full Disk Access. If popups don't appear, check Control Center for an active Focus.",
+                }.get(state, ""),
+            },
             "click_to_focus": {
                 "ready": focus,
                 "fix": "" if focus else "brew install terminal-notifier, then allow its notifications in System Settings.",
@@ -147,6 +156,16 @@ $.NSUserNotificationCenter.defaultUserNotificationCenter.deliverNotification(not
         except (OSError, subprocess.CalledProcessError) as error:
             print(f"[pintumcp] macOS notification error: {error}", file=sys.stderr)
     return False
+
+
+def macos_focus() -> str | None:
+    """'on' / 'off' if macOS lets us read the Focus (Do Not Disturb) state, else None."""
+    path = Path.home() / "Library/DoNotDisturb/DB/Assertions.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8")).get("data", [])
+    except (OSError, ValueError, AttributeError):
+        return None  # needs Full Disk Access on recent macOS; not an error
+    return "on" if any(d.get("storeAssertionRecords") for d in data if isinstance(d, dict)) else "off"
 
 
 def frontmost_app() -> str | None:

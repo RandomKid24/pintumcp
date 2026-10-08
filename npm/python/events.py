@@ -26,7 +26,10 @@ EVENT_DETAILS = {
     "question": ("Input Needed", "normal", "attention"),
     "approval": ("Approval Needed", "normal", "attention"),
     "error": ("Error", "critical", "error"),
+    "working": ("Started", "normal", None),  # silent heads-up; icon is the thinking face
 }
+ICON_FOR = {"working": "thinking"}  # event -> face, when it differs from the event name
+BUNDLE_PARTY = 3  # this many completions in one bundle get the party face
 
 DELAY_SECONDS = 3
 DEDUPE_SECONDS = 5
@@ -49,9 +52,9 @@ def in_quiet_hours(now: datetime | None = None) -> bool:
     return start <= t < end if start <= end else t >= start or t < end
 
 
-def event_icon(event: str) -> Path | None:
-    """Per-event mascot pose, if the icon file ships; otherwise the default icon."""
-    path = notifier.ICON_DIR / "icons" / f"{event}.png"
+def event_icon(face: str) -> Path | None:
+    """Pintu face icon by name, if the file ships; otherwise the default icon."""
+    path = notifier.ICON_DIR / "icons" / f"{face}.png"
     return path if path.is_file() else None
 
 
@@ -81,6 +84,7 @@ def deliver_event(
     volume: int,
     project: str | None = None,
     agent: str | None = None,
+    mood: str | None = None,
 ) -> dict:
     """Deliver one labelled agent lifecycle event immediately."""
     try:
@@ -88,6 +92,8 @@ def deliver_event(
     except KeyError as error:
         raise ValueError(f"Unsupported agent event: {event}") from error
     title = format_event_title(event, project, agent)
+    quiet = priority != "critical" and in_quiet_hours()
+    face = "sleepy" if quiet else mood or ICON_FOR.get(event, event)
     if event == "done" and get("mute_when_focused"):
         app = os.environ.get("__CFBundleIdentifier")
         if app and notifier.frontmost_app() == app:
@@ -102,8 +108,8 @@ def deliver_event(
         priority=priority,
         sound=sound,
         volume=volume,
-        icon=event_icon(event),
-        silent=priority != "critical" and in_quiet_hours(),
+        icon=event_icon(face),
+        silent=sound is None or quiet,
     )
 
 
@@ -186,7 +192,8 @@ class CompletionDispatcher:
             text = f"{len(messages)} tasks completed: " + "; ".join(messages[:MAX_LISTED])
             text += f"; +{extra} more" if extra > 0 else ""
         try:
-            result = self._deliver("done", text, max(e["volume"] for e in entries), project, agent)
+            args = ("done", text, max(e["volume"] for e in entries), project, agent)
+            result = self._deliver(*args, mood="party") if len(entries) >= BUNDLE_PARTY else self._deliver(*args)
         except Exception as error:  # timer threads swallow exceptions; make failures visible
             print(f"[pintumcp] completion alert failed: {error}", file=sys.stderr)
             return None

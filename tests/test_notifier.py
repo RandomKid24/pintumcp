@@ -93,6 +93,29 @@ class NotifierTests(unittest.TestCase):
         self.assertEqual(run.call_args.args[0][:2], ["osascript", "-e"])
         self.assertIn('display notification "line" with title "Build \\"x\\""', run.call_args.args[0][2])
 
+    def test_doctor_reports_focus_mode_without_pretending_to_know(self):
+        """Unreadable Focus state must say unknown, never claim everything is fine."""
+        for state, ready in (("on", False), ("off", True), (None, True)):
+            with patch.object(notifier, "SYSTEM", "Darwin"), patch.object(
+                notifier, "macos_focus", return_value=state
+            ), patch.object(notifier.shutil, "which", return_value=None):
+                focus = notifier.doctor(send_test=False)["optional"]["focus_mode"]
+            self.assertEqual((focus["state"], focus["ready"]), (state or "unknown", ready))
+            self.assertEqual(bool(focus["fix"]), state != "off")
+
+    def test_macos_focus_reads_active_assertions(self):
+        import json, tempfile
+
+        with tempfile.TemporaryDirectory() as home:
+            db = Path(home) / "Library/DoNotDisturb/DB"
+            db.mkdir(parents=True)
+            with patch.object(notifier.Path, "home", return_value=Path(home)):
+                self.assertIsNone(notifier.macos_focus())  # no file: unknown
+                (db / "Assertions.json").write_text(json.dumps({"data": [{"storeAssertionRecords": []}]}))
+                self.assertEqual(notifier.macos_focus(), "off")
+                (db / "Assertions.json").write_text(json.dumps({"data": [{"storeAssertionRecords": [{"x": 1}]}]}))
+                self.assertEqual(notifier.macos_focus(), "on")
+
     def test_windows_uses_the_quiet_system_notification_sound(self):
         """Replacing the system notification sound with a raw beep must fail this test."""
         winsound = SimpleNamespace(

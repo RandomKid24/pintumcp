@@ -1,6 +1,6 @@
 {
   "name": "pintumcp",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Agent Alerts MCP \u2014 desktop notifications with sound for AI coding agents",
   "main": "bin/pintumcp.js",
   "bin": {

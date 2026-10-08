@@ -50,7 +50,7 @@ icon.save(ROOT / "assets/pintumcp-icon.png")
 
 (ROOT / "assets/transparent/icons").mkdir(parents=True, exist_ok=True)
 (ROOT / "assets/transparent/previews").mkdir(exist_ok=True)
-EVENTS = ("done", "question", "approval", "error")
+EVENTS = ("done", "question", "approval", "error", "thinking", "sleepy", "party")
 MOODS = [n for n in pet["frames"] if n not in EVENTS]
 for name in MOODS:  # the pet alone, transparent background
     sprite(name, 24).save(ROOT / f"assets/transparent/icons/pintu-{name}.png")
@@ -94,7 +94,7 @@ for mood in MOODS:
     pet["tints"][f"{mood}_hop"] = pet["tints"].get(mood, {})
     transparent_gif(ROOT / f"assets/transparent/previews/pintu-{mood}.gif", [mood, f"{mood}_hop"])
 (ROOT / "assets/icons").mkdir(exist_ok=True)
-for event in ("done", "question", "approval", "error"):
+for event in EVENTS:
     squircle(compose(event, 512, 22)).save(ROOT / f"assets/icons/{event}.png")
 
 frames = [compose(n, 360, 16).convert("P", palette=Image.ADAPTIVE) for n in pet["sequence"]]

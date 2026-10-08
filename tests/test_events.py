@@ -179,7 +179,42 @@ class EventTests(unittest.TestCase):
 
     def test_every_event_has_its_own_mascot_icon(self):
         for event in events.EVENT_DETAILS:
-            self.assertEqual(events.event_icon(event).name, f"{event}.png")
+            face = events.ICON_FOR.get(event, event)
+            self.assertEqual(events.event_icon(face).name, f"{face}.png")
+
+    def test_working_is_a_silent_heads_up_with_the_thinking_face(self):
+        deliver = MagicMock(return_value={"notification": True})
+        with patch.object(events, "alert", deliver), patch.object(events, "in_quiet_hours", return_value=False):
+            events.deliver_event("working", "Refactoring auth", 35, "API", "Agent 1")
+
+        kwargs = deliver.call_args.kwargs
+        self.assertEqual(kwargs["title"], "API · Agent 1: Started")
+        self.assertTrue(kwargs["silent"])
+        self.assertEqual(kwargs["icon"].name, "thinking.png")
+
+    def test_quiet_hours_show_the_sleepy_face_but_errors_stay_themselves(self):
+        deliver = MagicMock(return_value={"notification": True})
+        with patch.object(events, "alert", deliver), patch.object(events, "in_quiet_hours", return_value=True):
+            events.deliver_event("done", "ok", 35)
+            events.deliver_event("error", "boom", 35)
+
+        self.assertEqual(deliver.call_args_list[0].kwargs["icon"].name, "sleepy.png")
+        self.assertEqual(deliver.call_args_list[1].kwargs["icon"].name, "error.png")
+
+    def test_a_bundle_of_three_or_more_gets_the_party_face(self):
+        deliver, timers = MagicMock(), TimerFactory()
+        dispatcher = self.make(deliver, timers)
+        for n in range(3):
+            dispatcher.queue_completion(f"t{n}", 35)
+        timers.created[0].fire()
+        self.assertEqual(deliver.call_args.kwargs, {"mood": "party"})
+
+        deliver2, timers2 = MagicMock(), TimerFactory()
+        pair = self.make(deliver2, timers2)
+        pair.queue_completion("a", 35, "Web")
+        pair.queue_completion("b", 35, "Web")
+        timers2.created[0].fire()
+        self.assertEqual(deliver2.call_args.kwargs, {})
 
     def test_quiet_hours_wrap_past_midnight(self):
         from datetime import datetime

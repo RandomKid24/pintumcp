@@ -47,7 +47,7 @@ function setupVenv() {
   console.log(`  Creating virtual environment with ${py}...`);
   try {
     execSync(`${py} -m venv "${VENV_DIR}"`, { stdio: "inherit" });
-    const dependencies = ['"mcp>=2.0.0"'];
+    const dependencies = ['"mcp>=2.0.0,<3"'];
     if (process.platform === "win32") {
       dependencies.push('"winotify>=1.1.0"');
     }
