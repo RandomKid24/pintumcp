@@ -62,6 +62,36 @@ That's it. One command. This will:
 
 ---
 
+## Meet Pintu
+
+Pintu is the little pixel-art mascot of pintumcp: the one who taps you on the shoulder when your agent needs you.
+
+**What he looks like.** A small teal creature built from chunky pixels. He has a wide, rounded body with a darker teal belt, big dark eyes with white glints, a tiny smile, stubby arms and two short feet. On top of his head sits a grey antenna stalk topped with an amber bell: his "ping". When something happens, sound-wave marks pop out beside the bell.
+
+**His moods.** Pintu changes pose with the kind of alert, so you can tell what happened from the corner of your eye, before you even read the title:
+
+| | Pose | When you see it | Title |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/icons/done.png" width="88" alt="Pintu cheering"> | **Cheering.** Arms up, happy `^ ^` eyes, sparkles around him | The agent finished its work | `Task Complete` |
+| <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/icons/question.png" width="88" alt="Pintu with a question mark"> | **Curious.** A `?` floats beside his head | The agent is stuck and needs your input | `Input Needed` |
+| <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/icons/approval.png" width="88" alt="Pintu with a raised hand and an exclamation mark"> | **Hand up.** A raised hand and a `!` | The agent wants permission before a risky step | `Approval Needed` |
+| <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/icons/error.png" width="88" alt="Pintu looking upset"> | **Upset.** Turns red, `x x` eyes, a small frown | Something failed | `Error` |
+
+He also waves hello when you run `install`, `test` or `doctor` in a terminal, and cheers (or turns red) when the check is done.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/pintumcp-pet.gif" width="160" alt="Pintu waving">
+</p>
+
+**Transparent versions.** Pintu on his own, with no background, for slides, docs and stickers. They live in [`assets/transparent`](assets/transparent) and are split into two folders:
+
+- [`icons/`](assets/transparent/icons): the four mood icons (`done`, `question`, `approval`, `error`) at 512px, same size and scale as the app icons, plus his idle, blink and wave poses (`pintu-idle`, `pintu-blink`, `pintu-waveA`, `pintu-waveB`).
+- [`previews/`](assets/transparent/previews): animated GIFs of Pintu (`pintu-pet.gif` plus one for each mood) and `alert-preview.png`, the popup cards without a backdrop.
+
+All of them are generated from one sprite file, `npm/lib/pet.json`, by `python3 scripts/make_assets.py`. Edit the sprite, rerun the script, and every icon, GIF and terminal animation updates together.
+
+---
+
 ## What You'll See
 
 A real popup on macOS (the pet appears on the right; the left icon is the notifier app's own):
@@ -75,7 +105,7 @@ Each alert type has its own mascot pose, and labelled titles tell parallel agent
 <p align="center">
   <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/alert-preview.png" width="560" alt="Illustration of pintumcp notifications for task complete, approval needed and error">
 </p>
-<p align="center"><sub>Windows and Linux use their native toast and notify-send. Transparent-background pet icons, animated per-pose GIFs and a preview are in <a href="assets/transparent">assets/transparent</a>.</sub></p>
+<p align="center"><sub>Windows and Linux use their native toast and notify-send. See <a href="#meet-pintu">Meet Pintu</a> for all of his moods and the transparent versions.</sub></p>
 
 On macOS, install [terminal-notifier](https://github.com/julienXX/terminal-notifier) (`brew install terminal-notifier`) and clicking a popup brings you back to the app running the agent. It is optional; `doctor` tells you whether it is active.
 

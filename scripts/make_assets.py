@@ -48,9 +48,10 @@ def squircle(im):
 icon = squircle(compose(pet["icon_frame"], 512, 22))
 icon.save(ROOT / "assets/pintumcp-icon.png")
 
-(ROOT / "assets/transparent").mkdir(exist_ok=True)
-for name in pet["frames"]:  # the pet alone, transparent background
-    sprite(name, 24).save(ROOT / f"assets/transparent/pintu-{name}.png")
+(ROOT / "assets/transparent/icons").mkdir(parents=True, exist_ok=True)
+(ROOT / "assets/transparent/previews").mkdir(exist_ok=True)
+for name in ("idle", "blink", "waveA", "waveB"):  # the pet alone, transparent background
+    sprite(name, 24).save(ROOT / f"assets/transparent/icons/pintu-{name}.png")
 
 
 def transparent_gif(path, names, px=16, pad=2):
@@ -67,11 +68,10 @@ def transparent_gif(path, names, px=16, pad=2):
                    loop=0, disposal=2, transparency=255)
 
 
-transparent_gif(ROOT / "assets/transparent/pintu-pet.gif", pet["sequence"])
+transparent_gif(ROOT / "assets/transparent/previews/pintu-pet.gif", pet["sequence"])
 
 # Drop-in transparent twins of assets/icons/*.png (same 512px canvas and scale, pet only),
 # plus a small animated GIF per pose: it hops, and sparkles blink.
-(ROOT / "assets/transparent/icons").mkdir(exist_ok=True)
 for event in ("done", "question", "approval", "error"):
     s = sprite(event, 22)
     canvas = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
@@ -82,7 +82,7 @@ for event in ("done", "question", "approval", "error"):
     hop = ["." * len(rows[0])] + [r.replace("Y", ".") for r in rows[:-1]]  # up one pixel, no sparkles
     pet["frames"][f"{event}_hop"] = hop
     pet.setdefault("tints", {})[f"{event}_hop"] = pet["tints"].get(event, {})
-    transparent_gif(ROOT / f"assets/transparent/pintu-{event}.gif", [event, f"{event}_hop"])
+    transparent_gif(ROOT / f"assets/transparent/previews/pintu-{event}.gif", [event, f"{event}_hop"])
 (ROOT / "assets/icons").mkdir(exist_ok=True)
 for event in ("done", "question", "approval", "error"):
     squircle(compose(event, 512, 22)).save(ROOT / f"assets/icons/{event}.png")
@@ -122,7 +122,7 @@ def preview(transparent=False):
         img.alpha_composite(icon, (pad + 22, y + 18))
         d.text((pad + 142, y + 26), title, font=title_f, fill=(20, 20, 30, 255))
         d.text((pad + 142, y + 72), body, font=body_f, fill=(70, 72, 90, 255))
-    img.save(ROOT / ("assets/transparent/alert-preview.png" if transparent else "assets/alert-preview.png"))
+    img.save(ROOT / ("assets/transparent/previews/alert-preview.png" if transparent else "assets/alert-preview.png"))
 
 
 preview()
