@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import atexit
 import hashlib
+import itertools
 import json
 import os
 import sys
@@ -31,6 +32,7 @@ DELAY_SECONDS = 3
 DEDUPE_SECONDS = 5
 MAX_LISTED = 5
 _recent: dict[tuple[str, str], float] = {}
+_counter = itertools.count()  # keeps arrival order when the clock repeats a timestamp
 
 
 def in_quiet_hours(now: datetime | None = None) -> bool:
@@ -145,8 +147,8 @@ class CompletionDispatcher:
             "project": clean_label(project),
             "agent": clean_label(agent),
         }
-        # uuid, not pid/counter: Windows' coarse clock can repeat time_ns across callers
-        name = f"{key}.{time.time_ns()}.{uuid.uuid4().hex[:8]}.json"
+        # Windows' coarse clock repeats time_ns: the counter orders, the uuid keeps names unique
+        name = f"{key}.{time.time_ns()}.{next(_counter):06d}.{uuid.uuid4().hex[:8]}.json"
         with open(self._spool / name, "x", encoding="utf-8") as f:
             json.dump(entry, f)
         if key not in self._timers:
