@@ -1,135 +1,129 @@
-"""Cross-platform desktop notification and sound for agent alerts."""
+"""Cross-platform desktop notifications with gentle, native sounds."""
 
+import json
 import platform
-import subprocess
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
+
 SYSTEM = platform.system()
 
-SOUNDS = {
-    "default": {
-        "Darwin": "/System/Library/Sounds/Glass.aiff",
-        "Windows": None,
-        "Linux": None,
-    },
-    "success": {
-        "Darwin": "/System/Library/Sounds/Hero.aiff",
-        "Windows": None,
-        "Linux": None,
-    },
-    "attention": {
-        "Darwin": "/System/Library/Sounds/Ping.aiff",
-        "Windows": None,
-        "Linux": None,
-    },
-    "error": {
-        "Darwin": "/System/Library/Sounds/Sosumi.aiff",
-        "Windows": None,
-        "Linux": None,
-    },
-    "complete": {
-        "Darwin": "/System/Library/Sounds/Blow.aiff",
-        "Windows": None,
-        "Linux": None,
-    },
+# These are deliberately short system sounds. Avoid alarms, fanfares, and
+# terminal bells, which are disruptive during normal agent work.
+MACOS_SOUNDS = {
+    "default": "Glass",
+    "success": "Glass",
+    "attention": "Ping",
+    "error": "Glass",
+    "complete": "Glass",
 }
 
 
-def _get_sound_path(sound_name: str) -> str | None:
-    entry = SOUNDS.get(sound_name, SOUNDS["default"])
-    if isinstance(entry, dict):
-        return entry.get(SYSTEM)
-    return entry
+def _macos_notify(title: str, message: str) -> bool:
+    """Submit a native macOS Notification Center notification through JXA."""
+    script = f"""
+ObjC.import("Foundation");
+const notification = $.NSUserNotification.alloc.init;
+notification.title = $({json.dumps(title)});
+notification.informativeText = $({json.dumps(message)});
+$.NSUserNotificationCenter.defaultUserNotificationCenter.deliverNotification(notification);
+"""
+    try:
+        subprocess.run(
+            ["osascript", "-l", "JavaScript", "-e", script],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return True
+    except (OSError, subprocess.CalledProcessError) as error:
+        print(f"[pintumcp] macOS notification error: {error}", file=sys.stderr)
+        return False
 
 
 def play_sound(sound_name: str = "default", volume: int = 80) -> bool:
+    """Play a brief, non-intrusive system sound without blocking the MCP server."""
     try:
         if SYSTEM == "Darwin":
-            path = _get_sound_path(sound_name)
-            if path and Path(path).exists():
+            sound = MACOS_SOUNDS.get(sound_name, MACOS_SOUNDS["default"])
+            path = Path("/System/Library/Sounds") / f"{sound}.aiff"
+            if not path.exists():
+                return False
+            clamped_volume = max(0, min(int(volume), 100)) / 100
+            subprocess.Popen(
+                ["afplay", "-v", str(clamped_volume), str(path)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return True
+
+        if SYSTEM == "Windows":
+            import winsound
+
+            winsound.PlaySound(
+                "SystemNotification", winsound.SND_ALIAS | winsound.SND_ASYNC
+            )
+            return True
+
+        if SYSTEM == "Linux":
+            if shutil.which("canberra-gtk-play"):
                 subprocess.Popen(
-                    ["afplay", path],
+                    ["canberra-gtk-play", "-i", "message"],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
                 return True
-            subprocess.Popen(
-                ["osascript", "-e", "beep"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            return True
-        elif SYSTEM == "Windows":
-            import winsound
-            freq, duration = 800, 300
-            if sound_name == "error":
-                freq, duration = 400, 500
-            elif sound_name == "attention":
-                freq, duration = 1000, 200
-            elif sound_name == "success":
-                freq, duration = 1200, 200
-            winsound.Beep(freq, duration)
-            return True
-        elif SYSTEM == "Linux":
-            if shutil.which("paplay"):
-                path = _get_sound_path(sound_name)
-                if path and Path(path).exists():
-                    subprocess.Popen(
-                        ["paplay", path],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
-                    return True
-            if shutil.which("beep"):
-                subprocess.Popen(["beep"],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            message_sound = Path("/usr/share/sounds/freedesktop/stereo/message.oga")
+            if shutil.which("paplay") and message_sound.exists():
+                subprocess.Popen(
+                    ["paplay", str(message_sound)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
                 return True
-            sys.stdout.write("\a")
-            sys.stdout.flush()
-            return True
-    except Exception as e:
-        print(f"[pintumcp] Sound error: {e}", file=sys.stderr)
-        return False
+    except (OSError, ValueError, ImportError) as error:
+        print(f"[pintumcp] Sound error: {error}", file=sys.stderr)
     return False
 
 
-def _macos_notify(title: str, message: str) -> bool:
-    """Show a notification popup on macOS."""
-    safe_title = title.replace('"', '\\"')
-    safe_msg = message.replace('"', '\\"')
-
-    # Use the Alert.app bundle — launched via `open` which has full GUI access
-    alert_app = Path(__file__).parent / "Alert.app"
-    if alert_app.exists():
-        try:
-            subprocess.Popen(
-                ["open", str(alert_app), "--args", safe_title, safe_msg],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            return True
-        except Exception:
-            pass
-
-    # Fallback: osascript display dialog
-    script = (
-        f'display dialog "{safe_msg}" with title "{safe_title}" '
-        f'buttons {{"OK"}} default button "OK" giving up after 10'
-    )
+def _windows_notify(title: str, message: str) -> bool:
+    """Show a Windows toast; winotify is installed by the CLI on Windows."""
     try:
-        subprocess.Popen(
-            ["osascript", "-e", script],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
+        from winotify import Notification
+
+        Notification(app_id="pintumcp", title=title, msg=message).show()
+        return True
+    except (ImportError, OSError, RuntimeError) as error:
+        print(
+            "[pintumcp] Windows notifications require winotify; "
+            f"run `pintumcp install` to repair the installation ({error}).",
+            file=sys.stderr,
+        )
+        return False
+
+
+def _linux_notify(title: str, message: str) -> bool:
+    """Show a freedesktop notification when a desktop notification daemon exists."""
+    if not shutil.which("notify-send"):
+        print(
+            "[pintumcp] Linux notifications require notify-send (libnotify-bin).",
+            file=sys.stderr,
+        )
+        return False
+    try:
+        subprocess.run(
+            ["notify-send", "--urgency=normal", title, message],
+            check=True,
+            capture_output=True,
+            text=True,
         )
         return True
-    except Exception:
-        pass
-
-    return False
+    except (OSError, subprocess.CalledProcessError) as error:
+        print(f"[pintumcp] Linux notification error: {error}", file=sys.stderr)
+        return False
 
 
 def send_notification(
@@ -139,39 +133,17 @@ def send_notification(
     volume: int = 80,
     play_snd: bool = True,
 ) -> dict:
+    """Send a platform-native popup and, by default, a gentle sound."""
     result = {"notification": False, "sound": False, "platform": SYSTEM}
-    try:
-        if SYSTEM == "Darwin":
-            result["notification"] = _macos_notify(title, message)
-        elif SYSTEM == "Windows":
-            try:
-                from winotify import Notification, audio
-                toast = Notification(
-                    app_id="Agent Alerts", title=title, msg=message,
-                )
-                toast.set_audio(audio.Default, loop=False)
-                toast.show()
-                result["notification"] = True
-            except ImportError:
-                subprocess.run(
-                    ["powershell", "-Command",
-                     f'Add-Type -AssemblyName System.Windows.Forms;'
-                     f'[System.Windows.Forms.MessageBox]::Show(\'{message}\', \'{title}\')'],
-                    capture_output=True,
-                )
-                result["notification"] = True
-        elif SYSTEM == "Linux":
-            if shutil.which("notify-send"):
-                subprocess.run(
-                    ["notify-send", title, message],
-                    check=True, capture_output=True,
-                )
-                result["notification"] = True
-            else:
-                print(f"[pintumcp] {title}: {message}")
-                result["notification"] = True
-    except Exception as e:
-        print(f"[pintumcp] Notification error: {e}", file=sys.stderr)
+    if SYSTEM == "Darwin":
+        result["notification"] = _macos_notify(title, message)
+    elif SYSTEM == "Windows":
+        result["notification"] = _windows_notify(title, message)
+    elif SYSTEM == "Linux":
+        result["notification"] = _linux_notify(title, message)
+    else:
+        print(f"[pintumcp] Unsupported platform: {SYSTEM}", file=sys.stderr)
+
     if play_snd:
         result["sound"] = play_sound(sound, volume)
     return result
@@ -184,6 +156,10 @@ def alert(
     sound: str | None = None,
     volume: int = 80,
 ) -> dict:
-    sound_map = {"low": "default", "normal": "default", "critical": "error"}
-    resolved_sound = sound or sound_map.get(priority, "default")
-    return send_notification(title, message, sound=resolved_sound, volume=volume)
+    sound_map = {"low": "default", "normal": "default", "critical": "attention"}
+    return send_notification(
+        title,
+        message,
+        sound=sound or sound_map.get(priority, "default"),
+        volume=volume,
+    )

@@ -46,13 +46,14 @@ function setupVenv() {
   console.log(`  Creating virtual environment with ${py}...`);
   try {
     execSync(`${py} -m venv "${VENV_DIR}"`, { stdio: "inherit" });
-    console.log("  Installing MCP SDK...");
-    execSync(`"${getVenvPython()}" -m pip install "mcp>=2.0.0" --quiet`, { stdio: "inherit" });
-    // Install rumps for proper macOS notifications
-    if (process.platform === "darwin") {
-      console.log("  Installing macOS notification support...");
-      execSync(`"${getVenvPython()}" -m pip install "rumps>=0.4.0" --quiet`, { stdio: "inherit" });
+    const dependencies = ['"mcp>=2.0.0"'];
+    if (process.platform === "win32") {
+      dependencies.push('"winotify>=1.1.0"');
     }
+    console.log("  Installing notification dependencies...");
+    execSync(`"${getVenvPython()}" -m pip install ${dependencies.join(" ")} --quiet`, {
+      stdio: "inherit",
+    });
     return true;
   } catch (e) {
     console.error(`  Error setting up venv: ${e.message}`);

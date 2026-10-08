@@ -135,11 +135,11 @@ Five built-in sounds, each mapped to a different situation:
 
 | Sound | Vibe | macOS | Windows | Linux |
 |-------|------|-------|---------|-------|
-| `default` | Neutral chime | Glass.aiff | 800Hz beep | System beep |
-| `success` | Victory fanfare | Hero.aiff | 1200Hz beep | System beep |
-| `attention` | Quick ping | Ping.aiff | 1000Hz beep | System beep |
-| `error` | Alert tone | Sosumi.aiff | 400Hz beep | System beep |
-| `complete` | Done signal | Blow.aiff | 800Hz beep | System beep |
+| `default` | Gentle chime | Glass.aiff | System notification | Desktop message |
+| `success` | Gentle chime | Glass.aiff | System notification | Desktop message |
+| `attention` | Soft ping | Ping.aiff | System notification | Desktop message |
+| `error` | Gentle attention | Glass.aiff | System notification | Desktop message |
+| `complete` | Gentle chime | Glass.aiff | System notification | Desktop message |
 
 ---
 
@@ -178,9 +178,9 @@ export PINTUMCP_VOLUME=100
 
 | | macOS | Windows | Linux |
 |-|-------|---------|-------|
-| **Notification** | `osascript` Notification Center | `winotify` native toast | `notify-send` |
-| **Sound** | `afplay` with system .aif | `winsound.Beep` | `paplay` / beep |
-| **Deps** | None (built-in) | `winotify` (auto-installed) | `libnotify-bin` |
+| **Notification** | `osascript` (JXA) Notification Center | `winotify` native toast | `notify-send` |
+| **Sound** | `afplay` with system .aif | Windows system notification | `canberra-gtk-play` / `paplay` |
+| **Deps** | None (built-in) | `winotify` (auto-installed) | `libnotify-bin`, optional `libcanberra-gtk3-module` |
 
 ---
 
