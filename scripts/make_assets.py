@@ -48,6 +48,26 @@ def squircle(im):
 icon = squircle(compose(pet["icon_frame"], 512, 22))
 icon.save(ROOT / "assets/pintumcp-icon.png")
 
+(ROOT / "assets/transparent").mkdir(exist_ok=True)
+for name in pet["frames"]:  # the pet alone, transparent background
+    sprite(name, 24).save(ROOT / f"assets/transparent/pintu-{name}.png")
+
+
+def transparent_gif(path, names, px=16, pad=2):
+    frames = []
+    for n in names:
+        s = sprite(n, px)
+        im = Image.new("RGBA", (s.width + 2 * pad * px, s.height + 2 * pad * px), (0, 0, 0, 0))
+        im.alpha_composite(s, (pad * px, pad * px))
+        p = im.convert("RGB").quantize(255)
+        alpha = im.getchannel("A").point(lambda a: 255 if a < 128 else 0)
+        p.paste(255, mask=alpha)  # index 255 = transparent
+        frames.append(p)
+    frames[0].save(path, save_all=True, append_images=frames[1:], duration=pet["delay_ms"],
+                   loop=0, disposal=2, transparency=255)
+
+
+transparent_gif(ROOT / "assets/transparent/pintu-pet.gif", pet["sequence"])
 (ROOT / "assets/icons").mkdir(exist_ok=True)
 for event in ("done", "question", "approval", "error"):
     squircle(compose(event, 512, 22)).save(ROOT / f"assets/icons/{event}.png")
@@ -58,7 +78,7 @@ frames[0].save(ROOT / "assets/pintumcp-pet.gif", save_all=True, append_images=fr
 
 
 # Illustration of the popups (rendered, not a screenshot) for the README.
-def preview():
+def preview(transparent=False):
     from PIL import ImageFont
 
     font = "/System/Library/Fonts/Helvetica.ttc"
@@ -73,7 +93,7 @@ def preview():
     ]
     W, H, pad, ch = 980, 0, 36, 132
     H = pad + len(cards) * (ch + 24)
-    img = background(W).crop((0, 0, W, H)).convert("RGBA")
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0)) if transparent else background(W).crop((0, 0, W, H)).convert("RGBA")
     d = ImageDraw.Draw(img)
     for i, (event, title, body) in enumerate(cards):
         y = pad // 2 + i * (ch + 24) + 12
@@ -87,7 +107,8 @@ def preview():
         img.alpha_composite(icon, (pad + 22, y + 18))
         d.text((pad + 142, y + 26), title, font=title_f, fill=(20, 20, 30, 255))
         d.text((pad + 142, y + 72), body, font=body_f, fill=(70, 72, 90, 255))
-    img.save(ROOT / "assets/alert-preview.png")
+    img.save(ROOT / ("assets/transparent/alert-preview.png" if transparent else "assets/alert-preview.png"))
 
 
 preview()
+preview(transparent=True)

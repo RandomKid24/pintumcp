@@ -64,12 +64,18 @@ That's it. One command. This will:
 
 ## What You'll See
 
-Each alert type has its own mascot pose, and labelled titles tell parallel agents apart.
+A real popup on macOS (the pet appears on the right; the left icon is the notifier app's own):
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/popup-real.png" width="560" alt="A real pintumcp notification: API · Agent 2: Task Complete">
+</p>
+
+Each alert type has its own mascot pose, and labelled titles tell parallel agents apart (rendered illustration):
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/alert-preview.png" width="560" alt="Illustration of pintumcp notifications for task complete, approval needed and error">
 </p>
-<p align="center"><sub>Illustration of the popups (macOS style). Windows and Linux use their native toast and notify-send.</sub></p>
+<p align="center"><sub>Windows and Linux use their native toast and notify-send. Transparent-background versions of the pet, GIF and preview are in <a href="assets/transparent">assets/transparent</a>.</sub></p>
 
 On macOS, install [terminal-notifier](https://github.com/julienXX/terminal-notifier) (`brew install terminal-notifier`) and clicking a popup brings you back to the app running the agent. It is optional; `doctor` tells you whether it is active.
 
