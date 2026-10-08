@@ -2,6 +2,7 @@
 
 const { detect } = require("../lib/detect");
 const { configureMcp } = require("../lib/configure");
+const { playPet } = require("../lib/pet");
 const path = require("path");
 const fs = require("fs");
 const { execSync, spawn } = require("child_process");
@@ -74,6 +75,7 @@ function testNotification() {
 }
 
 function printBanner() {
+  playPet();
   console.log(`
 ╔══════════════════════════════════════════╗
 ║         pintumcp — Agent Alerts          ║
@@ -157,6 +159,7 @@ function cmdTest() {
 }
 
 function cmdDoctor() {
+  printBanner();
   // notifier.py is stdlib-only, so the system Python works even before `install`.
   const py = fs.existsSync(getVenvPython()) ? getVenvPython() : getSystemPython();
   if (!py) {

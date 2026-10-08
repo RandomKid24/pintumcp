@@ -1,0 +1,131 @@
+{
+ "palette": {
+  "B": [
+   72,
+   214,
+   190
+  ],
+  "D": [
+   40,
+   160,
+   150
+  ],
+  "E": [
+   16,
+   22,
+   52
+  ],
+  "W": [
+   255,
+   255,
+   255
+  ],
+  "M": [
+   16,
+   22,
+   52
+  ],
+  "A": [
+   255,
+   184,
+   48
+  ],
+  "L": [
+   150,
+   170,
+   200
+  ],
+  "Y": [
+   255,
+   226,
+   150
+  ]
+ },
+ "frames": {
+  "idle": [
+   "..................",
+   "........AA........",
+   ".......AAAA.......",
+   "........LL........",
+   "...BBBBBBBBBBBB...",
+   "..BBBBBBBBBBBBBB..",
+   "..BBBBBBBBBBBBBB..",
+   "..BBBWEBBBBWEBBB..",
+   "..BBBEEBBBBEEBBB..",
+   ".BBBBBBBBBBBBBBBB.",
+   ".BBBBBBMBBMBBBBBB.",
+   "..BBBBBBMMBBBBBB..",
+   "...DDDDDDDDDDDD...",
+   "....BBB....BBB....",
+   "....BBB....BBB....",
+   ".................."
+  ],
+  "blink": [
+   "..................",
+   "........AA........",
+   ".......AAAA.......",
+   "........LL........",
+   "...BBBBBBBBBBBB...",
+   "..BBBBBBBBBBBBBB..",
+   "..BBBBBBBBBBBBBB..",
+   "..BBBBBBBBBBBBBB..",
+   "..BBBEEBBBBEEBBB..",
+   ".BBBBBBBBBBBBBBBB.",
+   ".BBBBBBMBBMBBBBBB.",
+   "..BBBBBBMMBBBBBB..",
+   "...DDDDDDDDDDDD...",
+   "....BBB....BBB....",
+   "....BBB....BBB....",
+   ".................."
+  ],
+  "waveA": [
+   "..................",
+   ".....Y..AA..Y.....",
+   ".....Y.AAAA.Y.....",
+   "........LL........",
+   "...BBBBBBBBBBBB..B",
+   "..BBBBBBBBBBBBBB.B",
+   "..BBBBBBBBBBBBBBBB",
+   "..BBBWEBBBBWEBBBB.",
+   "..BBBEEBBBBEEBBBB.",
+   ".BBBBBBBBBBBBBBB..",
+   ".BBBBBBMBBMBBBBB..",
+   "..BBBBBBMMBBBBBB..",
+   "...DDDDDDDDDDDD...",
+   "....BBB....BBB....",
+   "....BBB....BBB....",
+   ".................."
+  ],
+  "waveB": [
+   "..................",
+   "....Y...AA...Y....",
+   "....Y..AAAA..Y....",
+   "........LL........",
+   "...BBBBBBBBBBBB...",
+   "..BBBBBBBBBBBBBB.B",
+   "..BBBBBBBBBBBBBBBB",
+   "..BBBWEBBBBWEBBBBB",
+   "..BBBEEBBBBEEBBBB.",
+   ".BBBBBBBBBBBBBBB..",
+   ".BBBBBBMBBMBBBBB..",
+   "..BBBBBBMMBBBBBB..",
+   "...DDDDDDDDDDDD...",
+   "....BBB....BBB....",
+   "....BBB....BBB....",
+   ".................."
+  ]
+ },
+ "sequence": [
+  "idle",
+  "idle",
+  "blink",
+  "idle",
+  "waveA",
+  "waveB",
+  "waveA",
+  "waveB",
+  "idle"
+ ],
+ "delay_ms": 380,
+ "icon_frame": "waveA"
+}

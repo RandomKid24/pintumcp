@@ -6,6 +6,10 @@
   <img src="https://img.shields.io/github/license/RandomKid24/pintumcp?style=for-the-badge" alt="License">
 </p>
 
+<p align="center">
+  <img src="assets/pintumcp-pet.gif" width="180" alt="pintumcp mascot waving">
+</p>
+
 <h1 align="center">pintumcp</h1>
 
 <p align="center">
