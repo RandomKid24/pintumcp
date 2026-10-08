@@ -95,6 +95,50 @@ def play_sound(sound_name: str = "default", volume: int = 80) -> bool:
     return False
 
 
+def _macos_notify(title: str, message: str) -> bool:
+    """Show a notification on macOS using multiple methods for reliability."""
+    # Method 1: rumps (proper native macOS notification center notification)
+    try:
+        import rumps
+        rumps.notification(title, "", message, sound=True)
+        return True
+    except ImportError:
+        pass
+    except Exception:
+        pass
+
+    # Method 2: terminal-notifier (proper toast if installed)
+    if shutil.which("terminal-notifier"):
+        try:
+            subprocess.Popen(
+                ["terminal-notifier",
+                 "-title", title,
+                 "-message", message,
+                 "-sound", "Glass"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return True
+        except Exception:
+            pass
+
+    # Method 3: osascript display notification (fallback)
+    try:
+        safe_title = title.replace('"', '\\"').replace("\\", "\\\\")
+        safe_msg = message.replace('"', '\\"').replace("\\", "\\\\")
+        script = f'display notification "{safe_msg}" with title "{safe_title}" sound name "Glass"'
+        subprocess.Popen(
+            ["osascript", "-e", script],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return True
+    except Exception:
+        pass
+
+    return False
+
+
 def send_notification(
     title: str,
     message: str,
@@ -105,29 +149,7 @@ def send_notification(
     result = {"notification": False, "sound": False, "platform": SYSTEM}
     try:
         if SYSTEM == "Darwin":
-            # Escape quotes for AppleScript
-            safe_title = title.replace('"', '\\"')
-            safe_msg = message.replace('"', '\\"')
-            # Use terminal-notifier for proper toast popup if available
-            if shutil.which("terminal-notifier"):
-                subprocess.Popen(
-                    ["terminal-notifier",
-                     "-title", title,
-                     "-message", message,
-                     "-appIcon", "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertNoteIcon.icns",
-                     "-sound", "Glass"],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-                result["notification"] = True
-            else:
-                # osascript display notification — shows in Notification Center
-                script = f'display notification "{safe_msg}" with title "{safe_title}" sound name "Glass"'
-                subprocess.run(
-                    ["osascript", "-e", script],
-                    check=True, capture_output=True,
-                )
-                result["notification"] = True
+            result["notification"] = _macos_notify(title, message)
         elif SYSTEM == "Windows":
             try:
                 from winotify import Notification, audio
