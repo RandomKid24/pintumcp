@@ -50,7 +50,9 @@ icon.save(ROOT / "assets/pintumcp-icon.png")
 
 (ROOT / "assets/transparent/icons").mkdir(parents=True, exist_ok=True)
 (ROOT / "assets/transparent/previews").mkdir(exist_ok=True)
-for name in ("idle", "blink", "waveA", "waveB"):  # the pet alone, transparent background
+EVENTS = ("done", "question", "approval", "error")
+MOODS = [n for n in pet["frames"] if n not in EVENTS]
+for name in MOODS:  # the pet alone, transparent background
     sprite(name, 24).save(ROOT / f"assets/transparent/icons/pintu-{name}.png")
 
 
@@ -72,7 +74,7 @@ transparent_gif(ROOT / "assets/transparent/previews/pintu-pet.gif", pet["sequenc
 
 # Drop-in transparent twins of assets/icons/*.png (same 512px canvas and scale, pet only),
 # plus a small animated GIF per pose: it hops, and sparkles blink.
-for event in ("done", "question", "approval", "error"):
+for event in EVENTS:
     s = sprite(event, 22)
     canvas = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
     canvas.alpha_composite(s, ((512 - s.width) // 2, (512 - s.height) // 2))
@@ -81,8 +83,16 @@ for event in ("done", "question", "approval", "error"):
     rows = pet["frames"][event]
     hop = ["." * len(rows[0])] + [r.replace("Y", ".") for r in rows[:-1]]  # up one pixel, no sparkles
     pet["frames"][f"{event}_hop"] = hop
-    pet.setdefault("tints", {})[f"{event}_hop"] = pet["tints"].get(event, {})
+    pet["tints"][f"{event}_hop"] = pet["tints"].get(event, {})
     transparent_gif(ROOT / f"assets/transparent/previews/pintu-{event}.gif", [event, f"{event}_hop"])
+
+for mood in MOODS:
+    if mood in ("waveA", "waveB", "blink", "idle"):
+        continue  # covered by pintu-pet.gif
+    rows = pet["frames"][mood]
+    pet["frames"][f"{mood}_hop"] = ["." * len(rows[0])] + [r.replace("Y", ".") for r in rows[:-1]]
+    pet["tints"][f"{mood}_hop"] = pet["tints"].get(mood, {})
+    transparent_gif(ROOT / f"assets/transparent/previews/pintu-{mood}.gif", [mood, f"{mood}_hop"])
 (ROOT / "assets/icons").mkdir(exist_ok=True)
 for event in ("done", "question", "approval", "error"):
     squircle(compose(event, 512, 22)).save(ROOT / f"assets/icons/{event}.png")
@@ -127,3 +137,32 @@ def preview(transparent=False):
 
 preview()
 preview(transparent=True)
+
+
+# All of Pintu's faces on one sheet (labelled, dark) and a label-free transparent twin.
+def faces_sheet():
+    from PIL import ImageFont
+
+    names = [n for n in pet["frames"] if not n.endswith("_hop") and n not in ("waveB", "blink")]
+    cols, cell, px_ = 6, 220, 8
+    rows_n = -(-len(names) // cols)
+    sheet = Image.new("RGBA", (cols * cell, rows_n * cell), (0, 0, 0, 0))
+    labelled = background(cols * cell).crop((0, 0, cols * cell, rows_n * cell + 0)).convert("RGBA")
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 22)
+    except OSError:
+        font = None
+    d = ImageDraw.Draw(labelled)
+    for i, n in enumerate(names):
+        s = sprite(n, px_)
+        x, y = (i % cols) * cell + (cell - s.width) // 2, (i // cols) * cell + 18
+        sheet.alpha_composite(s, (x, y))
+        labelled.alpha_composite(s, (x, y))
+        if font:
+            w = d.textlength(n, font=font)
+            d.text(((i % cols) * cell + (cell - w) / 2, (i // cols) * cell + cell - 40), n, font=font, fill=(200, 210, 245, 255))
+    sheet.save(ROOT / "assets/transparent/previews/pintu-faces.png")
+    labelled.save(ROOT / "assets/pintu-faces.png")
+
+
+faces_sheet()

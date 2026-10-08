@@ -77,6 +77,93 @@ Pintu is the little pixel-art mascot of pintumcp: the one who taps you on the sh
 | <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/icons/approval.png" width="88" alt="Pintu with a raised hand and an exclamation mark"> | **Hand up.** A raised hand and a `!` | The agent wants permission before a risky step | `Approval Needed` |
 | <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/icons/error.png" width="88" alt="Pintu looking upset"> | **Upset.** Turns red, `x x` eyes, a small frown | Something failed | `Error` |
 
+**All his faces.** Pintu has 18 faces. The four alert moods above go into your popups; the rest are for the terminal, docs and stickers.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/pintu-faces.png" width="720" alt="Pintu's faces: idle, wave, cheer, question, hand up, error, wink, surprised, sleepy, love, thinking, angry, dizzy, cool, sad and party">
+</p>
+
+| Face | Where he shows it |
+|---|---|
+| `idle`, `blink`, `waveA`, `waveB` | Waves hello while `install`, `test` and `doctor` run |
+| `done` | `doctor` when everything is ready; the Task Complete popup |
+| `party` | The end of `install`, with confetti |
+| `wink` | After `test` sends its sample alert |
+| `sad` | The end of `uninstall`: "bye for now" |
+| `error` | `doctor` or `test` when something is wrong; the Error popup |
+| `question`, `approval` | The Input Needed and Approval Needed popups |
+| `wink`, `surprised`, `sleepy`, `love`, `thinking`, `angry`, `dizzy`, `cool` | Free to use in your own docs, slides and stickers |
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/pintumcp-pet.gif" width="180" alt="pintumcp mascot waving">
+</p>
+
+<h1 align="center">pintumcp</h1>
+
+<p align="center">
+  <strong>Never miss an AI agent alert again.</strong><br>
+  Desktop notifications with sound for every AI coding tool you use.
+</p>
+
+<p align="center">
+  One command. Every tool. Zero config. Runs locally.
+</p>
+
+---
+
+## The Problem
+
+You kick off a long task in Claude. You switch tabs. Five minutes later the agent is done — but you don't know. You miss the output. You miss the question. You waste time scrolling back.
+
+## The Fix
+
+```bash
+npx pintumcp
+```
+
+(or straight from GitHub: `npx github:RandomKid24/pintumcp`)
+
+That's it. One command. This will:
+
+```
+ Scanning your machine for AI coding tools...
+
+  ✓ MiMoCode          → ~/.config/mimocode/mimocode.jsonc
+  ✓ OpenCode          → ~/.config/opencode/opencode.json
+  ✓ Claude Desktop    → ~/Library/Application Support/Claude/...
+  ✓ Claude Code       → ~/.claude/settings.json
+  ✓ Codex             → ~/.codex/config.toml
+  ✓ Antigravity       → ~/Library/Application Support/Antigravity/...
+
+  ✓ pintumcp installed! 6 tool(s) configured.
+  Restart your AI coding tools to activate alerts.
+```
+
+- Creates a Python virtual environment
+- Installs the MCP SDK
+- Auto-detects **every AI coding tool** on your machine
+- Writes the MCP server config into each one
+- Sends a test notification so you know it works
+
+**No API keys. No accounts. No cloud. Everything runs locally.**
+
+---
+
+## Meet Pintu
+
+Pintu is the little pixel-art mascot of pintumcp: the one who taps you on the shoulder when your agent needs you.
+
+**What he looks like.** A small teal creature built from chunky pixels, drawn with a dark-teal outline so he stays crisp on any background. He has a wide, rounded body with a glossy highlight on his head, a darker belt, rosy cheeks, big dark eyes with white glints, a tiny smile, stubby arms and two short feet. On top of his head sits a grey antenna stalk topped with an amber bell: his "ping". When something happens, sound-wave marks pop out beside the bell.
+
+**His moods.** Pintu changes pose with the kind of alert, so you can tell what happened from the corner of your eye, before you even read the title:
+
+| | Pose | When you see it | Title |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/icons/done.png" width="88" alt="Pintu cheering"> | **Cheering.** Arms up, happy `^ ^` eyes, sparkles around him | The agent finished its work | `Task Complete` |
+| <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/icons/question.png" width="88" alt="Pintu with a question mark"> | **Curious.** A `?` floats beside his head | The agent is stuck and needs your input | `Input Needed` |
+| <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/icons/approval.png" width="88" alt="Pintu with a raised hand and an exclamation mark"> | **Hand up.** A raised hand and a `!` | The agent wants permission before a risky step | `Approval Needed` |
+| <img src="https://raw.githubusercontent.com/RandomKid24/pintumcp/main/assets/icons/error.png" width="88" alt="Pintu looking upset"> | **Upset.** Turns red, `x x` eyes, a small frown | Something failed | `Error` |
+
 He also waves hello when you run `install`, `test` or `doctor` in a terminal, and cheers (or turns red) when the check is done.
 
 <p align="center">
@@ -85,10 +172,10 @@ He also waves hello when you run `install`, `test` or `doctor` in a terminal, an
 
 **Transparent versions.** Pintu on his own, with no background, for slides, docs and stickers. They live in [`assets/transparent`](assets/transparent) and are split into two folders:
 
-- [`icons/`](assets/transparent/icons): the four mood icons (`done`, `question`, `approval`, `error`) at 512px, same size and scale as the app icons, plus his idle, blink and wave poses (`pintu-idle`, `pintu-blink`, `pintu-waveA`, `pintu-waveB`).
-- [`previews/`](assets/transparent/previews): animated GIFs of Pintu (`pintu-pet.gif` plus one for each mood) and `alert-preview.png`, the popup cards without a backdrop.
+- [`icons/`](assets/transparent/icons): the four mood icons (`done`, `question`, `approval`, `error`) at 512px, same size and scale as the app icons, plus every other face as `pintu-<face>.png`.
+- [`previews/`](assets/transparent/previews): animated GIFs of Pintu (`pintu-pet.gif` plus a bouncing GIF for each face), `pintu-faces.png` (the face sheet without labels) and `alert-preview.png`, the popup cards without a backdrop.
 
-All of them are generated from one sprite file, `npm/lib/pet.json`, by `python3 scripts/make_assets.py`. Edit the sprite, rerun the script, and every icon, GIF and terminal animation updates together.
+All of them are generated from one sprite builder: edit `scripts/build_pet.py`, then run `python3 scripts/build_pet.py && python3 scripts/make_assets.py`, and every icon, GIF and terminal animation updates together.
 
 ---
 

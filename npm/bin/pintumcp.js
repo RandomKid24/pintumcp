@@ -115,6 +115,7 @@ function cmdInstall() {
 
   testNotification();
 
+  showPose("party");
   console.log("\n✓ pintumcp installed successfully!");
   console.log(`  Detected ${tools.length} tool(s): ${tools.map(t => t.name).join(", ") || "none"}`);
   console.log("\n  Restart your AI coding tools to activate alerts.\n");
@@ -153,7 +154,7 @@ function cmdTest() {
       cwd: PYTHON_DIR,
       stdio: "inherit",
     });
-    showPose("done");
+    showPose("wink");
   } catch (e) {
     showPose("error");
     console.error(`  Error: ${e.message}`);
@@ -171,6 +172,7 @@ function cmdUninstall() {
     }
   }
   fs.rmSync(VENV_DIR, { recursive: true, force: true });
+  showPose("sad");
   console.log("\n  Removed the Python environment. Restart your AI tools to finish.\n");
 }
 
