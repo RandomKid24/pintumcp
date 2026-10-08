@@ -3,6 +3,8 @@
 const { detect } = require("../lib/detect");
 const { configureMcp, removeMcp } = require("../lib/configure");
 const { playPet, showPose } = require("../lib/pet");
+const { addHooks, removeHooks } = require("../lib/hooks");
+const os = require("os");
 const path = require("path");
 const fs = require("fs");
 const { execSync, spawn } = require("child_process");
@@ -50,6 +52,9 @@ function setupVenv() {
     const dependencies = ['"mcp>=2.0.0,<3"'];
     if (process.platform === "win32") {
       dependencies.push('"winotify>=1.1.0"');
+    }
+    if (process.platform === "darwin") {
+      dependencies.push('"rumps>=0.4"');
     }
     console.log("  Installing notification dependencies...");
     execSync(`"${getVenvPython()}" -m pip install ${dependencies.join(" ")} --quiet`, {
@@ -171,6 +176,8 @@ function cmdUninstall() {
       console.log(`  ✗ ${tool.name}: ${e.message}`);
     }
   }
+  try { removeHooks(path.join(os.homedir(), ".claude", "settings.json")); } catch {}
+  try { execSync("pkill -f python/tray.py", { stdio: "ignore" }); } catch {}
   fs.rmSync(VENV_DIR, { recursive: true, force: true });
   showPose("sad");
   console.log("\n  Removed the Python environment. Restart your AI tools to finish.\n");
@@ -195,6 +202,47 @@ function cmdDoctor() {
     console.log(ready ? "  All good — alerts will reach you.\n" : "  Something needs fixing — see the \"fix\" lines above.\n");
   } catch (e) {
     showPose("error");
+    process.exit(1);
+  }
+}
+
+function cmdTray(sub) {
+  if (process.platform !== "darwin") {
+    console.log("The menu-bar app is macOS-only for now (Windows and Linux are planned).");
+    return;
+  }
+  if (sub === "stop") {
+    try { execSync("pkill -f python/tray.py"); console.log("Pintu left the menu bar."); }
+    catch { console.log("The menu-bar app was not running."); }
+    return;
+  }
+  const py = getVenvPython();
+  if (!fs.existsSync(py)) {
+    console.error("Run `pintumcp install` first.");
+    process.exit(1);
+  }
+  try {
+    execSync(`"${py}" -c "import rumps"`, { stdio: "ignore" });
+  } catch {
+    console.log("Installing the menu-bar dependency (rumps)...");
+    execSync(`"${py}" -m pip install "rumps>=0.4" --quiet`, { stdio: "inherit" });
+  }
+  try { execSync("pkill -f python/tray.py", { stdio: "ignore" }); } catch {}
+  const child = spawn(py, [path.join(PYTHON_DIR, "tray.py")], { detached: true, stdio: "ignore", cwd: PYTHON_DIR });
+  child.unref();
+  console.log("Pintu is in your menu bar. Stop him with `pintumcp tray stop`.");
+}
+
+function cmdHooks(sub) {
+  const settings = path.join(os.homedir(), ".claude", "settings.json");
+  if (sub === "install") {
+    addHooks(settings, getVenvPython(), path.join(PYTHON_DIR, "hook.py"));
+    console.log(`Added Claude Code hooks to ${settings} (backup: settings.json.pintumcp.bak).`);
+    console.log("Claude Code sessions now report working / needs-you / done to the menu-bar app.");
+  } else if (sub === "remove") {
+    console.log(removeHooks(settings) ? "Removed pintumcp's Claude Code hooks." : "No pintumcp hooks were installed.");
+  } else {
+    console.error("Usage: pintumcp hooks install|remove");
     process.exit(1);
   }
 }
@@ -230,6 +278,8 @@ Usage:
   npx pintumcp detect       Scan for installed AI coding tools
   npx pintumcp test         Send a test notification
   npx pintumcp doctor       Check popup, sound and icon; send a test alert
+  npx pintumcp tray         Show every agent's status in the macOS menu bar (tray stop to quit)
+  npx pintumcp hooks install  Let Claude Code report its status automatically (hooks remove to undo)
   npx pintumcp uninstall    Remove pintumcp from every AI tool's config
   npx pintumcp run          Start MCP server (stdio mode)
   npx pintumcp help         Show this help
@@ -258,6 +308,12 @@ switch (cmd) {
     break;
   case "test":
     cmdTest();
+    break;
+  case "tray":
+    cmdTray(process.argv[3]);
+    break;
+  case "hooks":
+    cmdHooks(process.argv[3]);
     break;
   case "uninstall":
     cmdUninstall();

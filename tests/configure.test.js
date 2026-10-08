@@ -30,3 +30,24 @@ test("removeMcp leaves an unreadable config untouched", () => {
   assert.strictEqual(removeMcp({ configPath: file, format: "json", mcpKey: "mcpServers" }), false);
   assert.strictEqual(fs.readFileSync(file, "utf-8"), "{not json");
 });
+
+const { addHooks, removeHooks } = require("../npm/lib/hooks");
+
+test("addHooks is idempotent, keeps other hooks, and removeHooks restores the rest", () => {
+  const file = path.join(tmp(), "settings.json");
+  const mine = "/x/pintumcp/npm/python/hook.py";
+  const other = { hooks: [{ type: "command", command: "echo mine" }] };
+  fs.writeFileSync(file, JSON.stringify({ theme: "dark", hooks: { Stop: [other] } }));
+
+  addHooks(file, "/x/python", mine);
+  addHooks(file, "/x/python", mine); // twice: no duplicates
+  let data = JSON.parse(fs.readFileSync(file, "utf-8"));
+  assert.strictEqual(data.hooks.Stop.length, 2);
+  assert.deepStrictEqual(Object.keys(data.hooks).sort(), ["Notification", "Stop", "UserPromptSubmit"]);
+  assert.ok(fs.existsSync(file + ".pintumcp.bak"));
+
+  assert.strictEqual(removeHooks(file), true);
+  data = JSON.parse(fs.readFileSync(file, "utf-8"));
+  assert.deepStrictEqual(data, { theme: "dark", hooks: { Stop: [other] } });
+  assert.strictEqual(removeHooks(file), false);
+});

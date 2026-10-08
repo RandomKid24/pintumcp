@@ -166,3 +166,10 @@ def faces_sheet():
 
 
 faces_sheet()
+
+
+# Tiny Pintu faces for the menu-bar app: 40x36 px shown at 20x18 pt (exact 2x, crisp pixels).
+(ROOT / "assets/menubar").mkdir(exist_ok=True)
+for state, face in {"working": "thinking", "question": "question", "approval": "approval",
+                    "error": "error", "done": "done", "idle": "sleepy", "empty": "idle"}.items():
+    sprite(face, 2).save(ROOT / f"assets/menubar/{state}.png")

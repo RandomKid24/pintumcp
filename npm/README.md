@@ -200,6 +200,35 @@ On macOS, install [terminal-notifier](https://github.com/julienXX/terminal-notif
 
 ---
 
+## Agent Status Board (macOS menu bar)
+
+A tiny app that puts Pintu in your menu bar and shows **every agent and what it is doing**, each with its own face:
+
+| Agent | Status | Pintu |
+|---|---|---|
+| API · Agent 1 | Working, 4m | thinking |
+| API · Agent 2 | Needs approval | hand up `!` |
+| Web · Agent 1 | Needs your input | `?` |
+| Docs · Agent 1 | Done | cheering |
+| Web · Agent 2 | Error | red |
+
+The menu-bar icon shows the most urgent agent, with a number for how many need you. Click a row to jump back to that agent's app.
+
+```bash
+npx pintumcp tray            # Pintu appears in the menu bar
+npx pintumcp tray stop       # and leaves again
+npx pintumcp hooks install   # optional: Claude Code reports its status by itself
+```
+
+**Where the status comes from**
+
+- The MCP tools you already have: `agent_working`, `agent_question`, `agent_approval`, `agent_error`, `agent_done`, plus `agent_status` for silent progress notes. Pass `project` and `agent` so rows have good names; without them each AI session gets its own "Session 1234" row.
+- Claude Code hooks (optional, `hooks install`): Claude Code reports "working", "needs permission / input" and "done" automatically, so it shows up even if the AI never calls a tool. `hooks remove` undoes it, and your settings file is backed up first.
+
+Limits: an agent only shows up if it reports, and an agent that goes quiet while "working" for 10 minutes is flagged as maybe stuck. Everything stays on your machine, in small files under `~/.pintumcp/agents`. The menu-bar app is macOS-only for now; Windows and Linux builds are planned.
+
+---
+
 ## How It Works
 
 Once configured, the MCP server starts **automatically** when you open any supported tool. The tool reads its config, sees `pintumcp`, and spawns the server in the background. You don't start it manually — it's always there.
@@ -231,7 +260,7 @@ Every notification **always plays sound**. You will hear it.
 
 ## MCP Tools
 
-Eight local tools for every agent situation:
+Nine local tools for every agent situation:
 
 | Tool | When to use | Sound |
 |------|------------|-------|
@@ -240,6 +269,7 @@ Eight local tools for every agent situation:
 | `ping` | Sound only — get attention without a popup | Configurable |
 | `doctor` | Verify local popup, sound, and icon readiness | Gentle test chime |
 | `agent_working` | A long task just started (silent heads-up, thinking face) | None |
+| `agent_status` | Silent progress note for the menu-bar status board | None |
 | `agent_done` | Work finished successfully | Success chime |
 | `agent_question` | Agent needs your input | Attention ping |
 | `agent_approval` | Agent needs your approval before continuing | Attention ping |
