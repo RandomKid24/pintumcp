@@ -17,3 +17,26 @@ jobs:
           node-version: 20
       - run: python -m unittest discover -s tests
       - run: node --test tests/configure.test.js
+
+  smoke:
+    # Real notification backends, no mocks: does a popup actually get delivered?
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Linux desktop session (xvfb + dbus + dunst)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnotify-bin dunst xvfb dbus-x11
+          xvfb-run -a dbus-run-session -- sh -c 'dunst & sleep 2; python tests/smoke.py && dunstctl history | grep -q "CI · smoke: Task Complete"'
+      - name: Smoke test
+        if: runner.os != 'Linux'
+        run: python tests/smoke.py

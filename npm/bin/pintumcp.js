@@ -2,7 +2,7 @@
 
 const { detect } = require("../lib/detect");
 const { configureMcp, removeMcp } = require("../lib/configure");
-const { playPet } = require("../lib/pet");
+const { playPet, showPose } = require("../lib/pet");
 const path = require("path");
 const fs = require("fs");
 const { execSync, spawn } = require("child_process");
@@ -153,7 +153,9 @@ function cmdTest() {
       cwd: PYTHON_DIR,
       stdio: "inherit",
     });
+    showPose("done");
   } catch (e) {
+    showPose("error");
     console.error(`  Error: ${e.message}`);
   }
 }
@@ -181,11 +183,16 @@ function cmdDoctor() {
     process.exit(1);
   }
   try {
-    execSync(`"${py}" -c "import json; from notifier import doctor; print(json.dumps(doctor(), indent=2))"`, {
+    const out = execSync(`"${py}" -c "import json; from notifier import doctor; print(json.dumps(doctor(), indent=2))"`, {
       cwd: PYTHON_DIR,
-      stdio: "inherit",
+      encoding: "utf-8",
     });
-  } catch {
+    console.log(out);
+    const ready = JSON.parse(out).ready;
+    showPose(ready ? "done" : "error");
+    console.log(ready ? "  All good — alerts will reach you.\n" : "  Something needs fixing — see the \"fix\" lines above.\n");
+  } catch (e) {
+    showPose("error");
     process.exit(1);
   }
 }

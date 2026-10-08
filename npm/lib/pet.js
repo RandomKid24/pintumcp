@@ -1,12 +1,11 @@
 // Animated terminal pet: renders npm/lib/pet.json with half-block characters.
 const pet = require("./pet.json");
 
-const rgb = (c) => pet.palette[c];
-const fg = (c) => `\x1b[38;2;${rgb(c).join(";")}m`;
-const bg = (c) => `\x1b[48;2;${rgb(c).join(";")}m`;
-
 function render(name) {
   const rows = pet.frames[name];
+  const pal = { ...pet.palette, ...(pet.tints || {})[name] };
+  const fg = (c) => `\x1b[38;2;${pal[c].join(";")}m`;
+  const bg = (c) => `\x1b[48;2;${pal[c].join(";")}m`;
   const lines = [];
   for (let y = 0; y < rows.length; y += 2) {
     let line = "  ";
@@ -36,4 +35,10 @@ function playPet() {
   }
 }
 
-module.exports = { playPet, render };
+// Static pose (done / question / approval / error) after a result, e.g. doctor.
+function showPose(name) {
+  if (!process.stdout.isTTY || process.env.NO_COLOR) return;
+  console.log(render(name).join("\n"));
+}
+
+module.exports = { playPet, showPose, render };
