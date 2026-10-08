@@ -75,6 +75,8 @@ class EventTests(unittest.TestCase):
             priority="normal",
             sound="attention",
             volume=35,
+            icon=events.event_icon("approval"),
+            silent=False,
         )
 
     def test_one_completion_delivers_after_a_three_second_delay(self):
@@ -173,6 +175,45 @@ class EventTests(unittest.TestCase):
             events.deliver_event("error", "Different failure", 35)
 
         self.assertTrue(second["duplicate"])
+        self.assertEqual(deliver.call_count, 2)
+
+    def test_every_event_has_its_own_mascot_icon(self):
+        for event in events.EVENT_DETAILS:
+            self.assertEqual(events.event_icon(event).name, f"{event}.png")
+
+    def test_quiet_hours_wrap_past_midnight(self):
+        from datetime import datetime
+
+        window = {"start": "22:00", "end": "08:00"}
+        with patch.object(events, "get", side_effect=lambda k, d=None: window if k == "quiet_hours" else d):
+            self.assertTrue(events.in_quiet_hours(datetime(2026, 1, 1, 23, 30)))
+            self.assertTrue(events.in_quiet_hours(datetime(2026, 1, 1, 7, 59)))
+            self.assertFalse(events.in_quiet_hours(datetime(2026, 1, 1, 8, 0)))
+            self.assertFalse(events.in_quiet_hours(datetime(2026, 1, 1, 13, 0)))
+
+    def test_quiet_hours_silence_sound_but_never_errors(self):
+        deliver = MagicMock(return_value={"notification": True})
+        with patch.object(events, "alert", deliver), patch.object(events, "in_quiet_hours", return_value=True):
+            events.deliver_event("question", "q", 35)
+            events.deliver_event("error", "boom", 35)
+
+        self.assertTrue(deliver.call_args_list[0].kwargs["silent"])
+        self.assertFalse(deliver.call_args_list[1].kwargs["silent"])
+
+    def test_completion_is_muted_only_when_the_agent_app_is_focused(self):
+        deliver = MagicMock(return_value={"notification": True})
+        cfg = lambda k, d=None: True if k == "mute_when_focused" else d
+        env = {"__CFBundleIdentifier": "com.apple.Terminal"}
+        with patch.object(events, "alert", deliver), patch.object(events, "get", side_effect=cfg), \
+                patch.dict(events.os.environ, env):
+            with patch.object(events.notifier, "frontmost_app", return_value="com.apple.Terminal"):
+                muted = events.deliver_event("done", "a", 35)
+            with patch.object(events.notifier, "frontmost_app", return_value="org.mozilla.firefox"):
+                events.deliver_event("done", "b", 35)
+            with patch.object(events.notifier, "frontmost_app", return_value="com.apple.Terminal"):
+                events.deliver_event("error", "c", 35)  # errors are never muted
+
+        self.assertEqual(muted["muted"], "focused")
         self.assertEqual(deliver.call_count, 2)
 
 

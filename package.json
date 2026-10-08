@@ -1,7 +1,7 @@
 {
   "name": "pintumcp",
   "version": "1.1.0",
-  "description": "Agent Alerts MCP — desktop notifications with sound for AI coding agents",
+  "description": "Agent Alerts MCP \u2014 desktop notifications with sound for AI coding agents",
   "main": "npm/bin/pintumcp.js",
   "bin": {
     "pintumcp": "npm/bin/pintumcp.js"
@@ -22,6 +22,18 @@
   ],
   "license": "MIT",
   "files": [
-    "npm/"
-  ]
+    "npm/",
+    "!npm/python/__pycache__"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RandomKid24/pintumcp.git"
+  },
+  "homepage": "https://github.com/RandomKid24/pintumcp#readme",
+  "bugs": {
+    "url": "https://github.com/RandomKid24/pintumcp/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }

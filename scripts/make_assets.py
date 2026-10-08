@@ -1,16 +1,17 @@
-"""Render the pet from npm/lib/pet.json into assets/ (icon PNG + animated GIF)."""
+"""Render the pet from npm/lib/pet.json into assets/ (icons, per-event icons, animated GIF)."""
 import json
 from pathlib import Path
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 pet = json.loads((ROOT / "npm/lib/pet.json").read_text())
-pal = {k: tuple(v) for k, v in pet["palette"].items()}
+PALETTE = {k: tuple(v) for k, v in pet["palette"].items()}
 BG_TOP, BG_BOT = (30, 36, 82), (12, 14, 38)
 
 
 def sprite(name, px):
     rows = pet["frames"][name]
+    pal = {**PALETTE, **{k: tuple(v) for k, v in pet.get("tints", {}).get(name, {}).items()}}
     im = Image.new("RGBA", (len(rows[0]) * px, len(rows) * px), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     for y, row in enumerate(rows):
@@ -47,6 +48,46 @@ def squircle(im):
 icon = squircle(compose(pet["icon_frame"], 512, 22))
 icon.save(ROOT / "assets/pintumcp-icon.png")
 
+(ROOT / "assets/icons").mkdir(exist_ok=True)
+for event in ("done", "question", "approval", "error"):
+    squircle(compose(event, 512, 22)).save(ROOT / f"assets/icons/{event}.png")
+
 frames = [compose(n, 360, 16).convert("P", palette=Image.ADAPTIVE) for n in pet["sequence"]]
 frames[0].save(ROOT / "assets/pintumcp-pet.gif", save_all=True, append_images=frames[1:],
                duration=pet["delay_ms"], loop=0, disposal=2)
+
+
+# Illustration of the popups (rendered, not a screenshot) for the README.
+def preview():
+    from PIL import ImageFont
+
+    font = "/System/Library/Fonts/Helvetica.ttc"
+    try:
+        title_f, body_f = ImageFont.truetype(font, 30, index=1), ImageFont.truetype(font, 27)
+    except OSError:  # non-macOS machine: skip, the committed PNG stays as is
+        return
+    cards = [
+        ("done", "API · Agent 2: Task Complete", "3 tasks completed: Built API; Wrote tests; Fixed lint"),
+        ("approval", "API · Agent 1: Approval Needed", "Approve deploying v2.4.0 to production?"),
+        ("error", "Web: Error", "Build failed: missing dependency 'lodash'"),
+    ]
+    W, H, pad, ch = 980, 0, 36, 132
+    H = pad + len(cards) * (ch + 24)
+    img = background(W).crop((0, 0, W, H)).convert("RGBA")
+    d = ImageDraw.Draw(img)
+    for i, (event, title, body) in enumerate(cards):
+        y = pad // 2 + i * (ch + 24) + 12
+        shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ImageDraw.Draw(shadow).rounded_rectangle((pad, y + 6, W - pad, y + ch + 6), radius=30, fill=(0, 0, 0, 110))
+        from PIL import ImageFilter
+        img.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(12)))
+        d = ImageDraw.Draw(img)
+        d.rounded_rectangle((pad, y, W - pad, y + ch), radius=30, fill=(244, 244, 248, 255))
+        icon = Image.open(ROOT / f"assets/icons/{event}.png").resize((96, 96), Image.LANCZOS)
+        img.alpha_composite(icon, (pad + 22, y + 18))
+        d.text((pad + 142, y + 26), title, font=title_f, fill=(20, 20, 30, 255))
+        d.text((pad + 142, y + 72), body, font=body_f, fill=(70, 72, 90, 255))
+    img.save(ROOT / "assets/alert-preview.png")
+
+
+preview()

@@ -39,6 +39,11 @@
    255,
    226,
    150
+  ],
+  "C": [
+   120,
+   200,
+   255
   ]
  },
  "frames": {
@@ -113,6 +118,78 @@
    "....BBB....BBB....",
    "....BBB....BBB....",
    ".................."
+  ],
+  "done": [
+   "...Y..........Y...",
+   "Y.......AA.......Y",
+   ".Y.....AAAA.....Y.",
+   "........LL........",
+   "B..BBBBBBBBBBBB..B",
+   "B.BBBBBBBBBBBBBB.B",
+   ".BBBBBBBBBBBBBBBB.",
+   ".BBBBEBBBBBBEBBBB.",
+   ".BBBEBEBBBBEBEBBB.",
+   "..BBBBBBBBBBBBBB..",
+   "..BBBBBMBBMBBBBB..",
+   "..BBBBBBMMBBBBBB..",
+   "...DDDDDDDDDDDD...",
+   "....BBB....BBB....",
+   "....BBB....BBB....",
+   ".................."
+  ],
+  "question": [
+   "...............AAA",
+   "........AA.......A",
+   ".......AAAA.....AA",
+   "........LL........",
+   "...BBBBBBBBBBBB.A.",
+   "..BBBBBBBBBBBBBB..",
+   "..BBBBBBBBBBBBBB..",
+   "..BBBWEBBBBWEBBB..",
+   "..BBBEEBBBBEEBBB..",
+   ".BBBBBBBBBBBBBBBB.",
+   ".BBBBBBMBBMBBBBBB.",
+   "..BBBBBBMMBBBBBB..",
+   "...DDDDDDDDDDDD...",
+   "....BBB....BBB....",
+   "....BBB....BBB....",
+   ".................."
+  ],
+  "approval": [
+   "AA................",
+   "AA......AA........",
+   "AA.....AAAA.......",
+   "........LL........",
+   "AA.BBBBBBBBBBBB..B",
+   "..BBBBBBBBBBBBBB.B",
+   "..BBBBBBBBBBBBBBBB",
+   "..BBBWEBBBBWEBBBB.",
+   "..BBBEEBBBBEEBBBB.",
+   ".BBBBBBBBBBBBBBB..",
+   ".BBBBBBMBBMBBBBB..",
+   "..BBBBBBMMBBBBBB..",
+   "...DDDDDDDDDDDD...",
+   "....BBB....BBB....",
+   "....BBB....BBB....",
+   ".................."
+  ],
+  "error": [
+   "..................",
+   "........AA........",
+   ".......AAAA.......",
+   "........LL........",
+   "...BBBBBBBBBBBB...",
+   "..BBBBBBBBBBBBBB..",
+   "..BBBBBBBBBBBBBB..",
+   "..BBEBEBBBBEBEBB..",
+   "..BBBEBBBBBBEBBB..",
+   ".BBBBBBBBBBBBBBBB.",
+   ".BBBBBBBMMBBBBBBB.",
+   "..BBBBBMBBMBBBBB..",
+   "...DDDDDDDDDDDD...",
+   "....BBB....BBB....",
+   "....BBB....BBB....",
+   ".................."
   ]
  },
  "sequence": [
@@ -127,5 +204,19 @@
   "idle"
  ],
  "delay_ms": 380,
- "icon_frame": "waveA"
+ "icon_frame": "waveA",
+ "tints": {
+  "error": {
+   "B": [
+    255,
+    122,
+    122
+   ],
+   "D": [
+    205,
+    80,
+    92
+   ]
+  }
+ }
 }

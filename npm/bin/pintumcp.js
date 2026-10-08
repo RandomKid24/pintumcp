@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { detect } = require("../lib/detect");
-const { configureMcp } = require("../lib/configure");
+const { configureMcp, removeMcp } = require("../lib/configure");
 const { playPet } = require("../lib/pet");
 const path = require("path");
 const fs = require("fs");
@@ -158,6 +158,20 @@ function cmdTest() {
   }
 }
 
+function cmdUninstall() {
+  printBanner();
+  console.log("Removing pintumcp from AI tools...\n");
+  for (const tool of detect()) {
+    try {
+      console.log(`  ${removeMcp(tool) ? "✓ removed from" : "- not configured in"} ${tool.name}`);
+    } catch (e) {
+      console.log(`  ✗ ${tool.name}: ${e.message}`);
+    }
+  }
+  fs.rmSync(VENV_DIR, { recursive: true, force: true });
+  console.log("\n  Removed the Python environment. Restart your AI tools to finish.\n");
+}
+
 function cmdDoctor() {
   printBanner();
   // notifier.py is stdlib-only, so the system Python works even before `install`.
@@ -207,6 +221,7 @@ Usage:
   npx pintumcp detect       Scan for installed AI coding tools
   npx pintumcp test         Send a test notification
   npx pintumcp doctor       Check popup, sound and icon; send a test alert
+  npx pintumcp uninstall    Remove pintumcp from every AI tool's config
   npx pintumcp run          Start MCP server (stdio mode)
   npx pintumcp help         Show this help
 
@@ -234,6 +249,9 @@ switch (cmd) {
     break;
   case "test":
     cmdTest();
+    break;
+  case "uninstall":
+    cmdUninstall();
     break;
   case "doctor":
     cmdDoctor();

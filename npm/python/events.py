@@ -9,10 +9,13 @@ import os
 import sys
 import tempfile
 import time
+from datetime import datetime, time as dtime
 from pathlib import Path
 from threading import Timer
 from typing import Callable
 
+import notifier
+from config import get
 from notifier import alert
 
 
@@ -27,6 +30,26 @@ DELAY_SECONDS = 3
 DEDUPE_SECONDS = 5
 MAX_LISTED = 5
 _recent: dict[tuple[str, str], float] = {}
+
+
+def in_quiet_hours(now: datetime | None = None) -> bool:
+    """True inside the configured quiet window (it may wrap past midnight)."""
+    window = get("quiet_hours")
+    if not window:
+        return False
+    try:
+        start = dtime.fromisoformat(window["start"])
+        end = dtime.fromisoformat(window["end"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    t = (now or datetime.now()).time()
+    return start <= t < end if start <= end else t >= start or t < end
+
+
+def event_icon(event: str) -> Path | None:
+    """Per-event mascot pose, if the icon file ships; otherwise the default icon."""
+    path = notifier.ICON_DIR / "icons" / f"{event}.png"
+    return path if path.is_file() else None
 
 
 def clean_label(value: str | None) -> str | None:
@@ -62,6 +85,10 @@ def deliver_event(
     except KeyError as error:
         raise ValueError(f"Unsupported agent event: {event}") from error
     title = format_event_title(event, project, agent)
+    if event == "done" and get("mute_when_focused"):
+        app = os.environ.get("__CFBundleIdentifier")
+        if app and notifier.frontmost_app() == app:
+            return {"notification": False, "sound": False, "muted": "focused"}
     now = time.monotonic()
     if now - _recent.get((title, message), -DEDUPE_SECONDS) < DEDUPE_SECONDS:
         return {"notification": False, "sound": False, "duplicate": True}
@@ -72,6 +99,8 @@ def deliver_event(
         priority=priority,
         sound=sound,
         volume=volume,
+        icon=event_icon(event),
+        silent=priority != "critical" and in_quiet_hours(),
     )
 
 
@@ -158,7 +187,7 @@ class CompletionDispatcher:
         except Exception as error:  # timer threads swallow exceptions; make failures visible
             print(f"[pintumcp] completion alert failed: {error}", file=sys.stderr)
             return None
-        if not result.get("notification"):
+        if not result.get("notification") and not result.get("muted"):
             print("[pintumcp] completion popup was not shown; run doctor", file=sys.stderr)
         return result
 

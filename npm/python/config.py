@@ -11,6 +11,10 @@ DEFAULTS = {
     "notification_enabled": True,
     "volume": 80,
     "always_sound_with_notification": True,
+    # {"start": "22:00", "end": "08:00"}: popups still show, sound is off (errors keep theirs)
+    "quiet_hours": None,
+    # Skip "task complete" alerts while the app running the agent is already focused (macOS)
+    "mute_when_focused": False,
 }
 
 _config: dict | None = None
@@ -42,12 +46,15 @@ def load_config() -> dict:
         "PINTUMCP_TITLE": "default_title",
         "PINTUMCP_SOUND": "default_sound",
         "PINTUMCP_VOLUME": "volume",
+        "PINTUMCP_MUTE_WHEN_FOCUSED": "mute_when_focused",
     }
     for env_key, cfg_key in env_map.items():
         val = os.environ.get(env_key)
         if val is not None:
             if cfg_key == "volume":
                 cfg[cfg_key] = int(val)
+            elif cfg_key == "mute_when_focused":
+                cfg[cfg_key] = val.lower() in ("1", "true", "yes", "on")
             else:
                 cfg[cfg_key] = val
 

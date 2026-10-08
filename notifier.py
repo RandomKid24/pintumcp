@@ -2,7 +2,9 @@
 
 import json
 import importlib.util
+import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -10,7 +12,8 @@ from pathlib import Path
 
 
 SYSTEM = platform.system()
-ICON_PATH = Path(__file__).parent / "assets" / "pintumcp-icon.png"
+ICON_DIR = Path(__file__).parent / "assets"
+ICON_PATH = ICON_DIR / "pintumcp-icon.png"
 
 # These are deliberately short system sounds. Avoid alarms, fanfares, and
 # terminal bells, which are disruptive during normal agent work.
@@ -25,7 +28,8 @@ MACOS_SOUNDS = {
 def _check_notification_backend() -> dict:
     if SYSTEM == "Darwin":
         ready = bool(shutil.which("osascript"))
-        return {"ready": ready, "detail": "JXA Notification Center", "fix": "macOS includes osascript"}
+        detail = "terminal-notifier" if _terminal_notifier() else "JXA Notification Center (falls back to display notification)"
+        return {"ready": ready, "detail": detail, "fix": "macOS includes osascript"}
     if SYSTEM == "Windows":
         ready = importlib.util.find_spec("winotify") is not None
         return {
@@ -74,6 +78,14 @@ def doctor(send_test: bool = True) -> dict:
         "checks": checks,
         "ready": all(check["ready"] for check in checks.values()),
     }
+    if SYSTEM == "Darwin":
+        focus = bool(_terminal_notifier())
+        result["optional"] = {
+            "click_to_focus": {
+                "ready": focus,
+                "fix": "" if focus else "brew install terminal-notifier, then allow its notifications in System Settings.",
+            }
+        }
     if send_test:
         result["test_delivery"] = send_notification(
             "pintumcp doctor", "Local notification test", sound="default", volume=35
@@ -81,28 +93,74 @@ def doctor(send_test: bool = True) -> dict:
     return result
 
 
-def _macos_notify(title: str, message: str) -> bool:
-    """Submit a native macOS Notification Center notification through JXA."""
+_tn_ready: bool | None = None
+
+
+def _terminal_notifier() -> str | None:
+    """terminal-notifier path, only if macOS has authorised it to post notifications."""
+    global _tn_ready
+    tool = shutil.which("terminal-notifier")
+    if not tool:
+        return None
+    if _tn_ready is None:
+        try:
+            out = subprocess.run([tool, "-diagnose"], capture_output=True, text=True, timeout=10).stdout
+            _tn_ready = bool(re.search(r"authorization\s+authorized", out))
+        except (OSError, subprocess.SubprocessError):
+            _tn_ready = False
+    return tool if _tn_ready else None
+
+
+def _macos_notify(title: str, message: str, icon: Path = ICON_PATH) -> bool:
+    """Show a macOS notification. Click-to-focus needs terminal-notifier (optional).
+
+    Order: terminal-notifier (modern API, clicking focuses the app running the agent),
+    then JXA NSUserNotification (deprecated by Apple, still works), then plain
+    `display notification` (no custom icon) so an alert is never silently lost.
+    """
+    tool = _terminal_notifier()
+    if tool:
+        command = [tool, "-title", title, "-message", message, "-contentImage", str(icon)]
+        app = os.environ.get("__CFBundleIdentifier")  # app that launched this agent
+        if app:
+            command += ["-activate", app]
+        try:
+            subprocess.run(command, check=True, capture_output=True, text=True, timeout=10)
+            return True
+        except (OSError, subprocess.SubprocessError) as error:
+            print(f"[pintumcp] terminal-notifier error: {error}", file=sys.stderr)
+
     script = f"""
 ObjC.import("Foundation");
 ObjC.import("AppKit");
 const notification = $.NSUserNotification.alloc.init;
 notification.title = $({json.dumps(title)});
 notification.informativeText = $({json.dumps(message)});
-notification.contentImage = $.NSImage.alloc.initWithContentsOfFile($({json.dumps(str(ICON_PATH))}));
+notification.contentImage = $.NSImage.alloc.initWithContentsOfFile($({json.dumps(str(icon))}));
 $.NSUserNotificationCenter.defaultUserNotificationCenter.deliverNotification(notification);
 """
+    plain = f"display notification {json.dumps(message, ensure_ascii=False)} with title {json.dumps(title, ensure_ascii=False)}"
+    for command in (["osascript", "-l", "JavaScript", "-e", script], ["osascript", "-e", plain]):
+        try:
+            subprocess.run(command, check=True, capture_output=True, text=True)
+            return True
+        except (OSError, subprocess.CalledProcessError) as error:
+            print(f"[pintumcp] macOS notification error: {error}", file=sys.stderr)
+    return False
+
+
+def frontmost_app() -> str | None:
+    """Bundle id of the focused macOS app (no permission prompt); None elsewhere/unknown."""
+    if SYSTEM != "Darwin":
+        return None
+    script = 'ObjC.import("AppKit"); ObjC.unwrap($.NSWorkspace.sharedWorkspace.frontmostApplication.bundleIdentifier)'
     try:
-        subprocess.run(
-            ["osascript", "-l", "JavaScript", "-e", script],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        return True
-    except (OSError, subprocess.CalledProcessError) as error:
-        print(f"[pintumcp] macOS notification error: {error}", file=sys.stderr)
-        return False
+        out = subprocess.run(
+            ["osascript", "-l", "JavaScript", "-e", script], capture_output=True, text=True, timeout=5
+        ).stdout.strip()
+        return out or None
+    except (OSError, subprocess.SubprocessError):
+        return None
 
 
 def play_sound(sound_name: str = "default", volume: int = 80) -> bool:
@@ -151,14 +209,14 @@ def play_sound(sound_name: str = "default", volume: int = 80) -> bool:
     return False
 
 
-def _windows_notify(title: str, message: str) -> bool:
+def _windows_notify(title: str, message: str, icon: Path = ICON_PATH) -> bool:
     """Show a Windows toast; winotify is installed by the CLI on Windows."""
     try:
         from winotify import Notification
 
         notification_args = {"app_id": "pintumcp", "title": title, "msg": message}
-        if ICON_PATH.exists():
-            notification_args["icon"] = str(ICON_PATH)
+        if icon.exists():
+            notification_args["icon"] = str(icon)
         Notification(**notification_args).show()
         return True
     except (ImportError, OSError, RuntimeError) as error:
@@ -170,7 +228,7 @@ def _windows_notify(title: str, message: str) -> bool:
         return False
 
 
-def _linux_notify(title: str, message: str) -> bool:
+def _linux_notify(title: str, message: str, icon: Path = ICON_PATH) -> bool:
     """Show a freedesktop notification when a desktop notification daemon exists."""
     if not shutil.which("notify-send"):
         print(
@@ -180,7 +238,7 @@ def _linux_notify(title: str, message: str) -> bool:
         return False
     try:
         subprocess.run(
-            ["notify-send", "--urgency=normal", f"--icon={ICON_PATH}", title, message],
+            ["notify-send", "--urgency=normal", f"--icon={icon}", title, message],
             check=True,
             capture_output=True,
             text=True,
@@ -197,15 +255,17 @@ def send_notification(
     sound: str = "default",
     volume: int = 80,
     play_snd: bool = True,
+    icon: Path | None = None,
 ) -> dict:
     """Send a platform-native popup and, by default, a gentle sound."""
     result = {"notification": False, "sound": False, "platform": SYSTEM}
+    icon = icon or ICON_PATH
     if SYSTEM == "Darwin":
-        result["notification"] = _macos_notify(title, message)
+        result["notification"] = _macos_notify(title, message, icon)
     elif SYSTEM == "Windows":
-        result["notification"] = _windows_notify(title, message)
+        result["notification"] = _windows_notify(title, message, icon)
     elif SYSTEM == "Linux":
-        result["notification"] = _linux_notify(title, message)
+        result["notification"] = _linux_notify(title, message, icon)
     else:
         print(f"[pintumcp] Unsupported platform: {SYSTEM}", file=sys.stderr)
 
@@ -220,6 +280,8 @@ def alert(
     priority: str = "normal",
     sound: str | None = None,
     volume: int = 80,
+    icon: Path | None = None,
+    silent: bool = False,
 ) -> dict:
     sound_map = {"low": "default", "normal": "default", "critical": "attention"}
     return send_notification(
@@ -227,4 +289,6 @@ def alert(
         message,
         sound=sound or sound_map.get(priority, "default"),
         volume=volume,
+        play_snd=not silent,
+        icon=icon,
     )

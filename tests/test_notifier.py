@@ -39,8 +39,8 @@ class NotifierTests(unittest.TestCase):
         """Replacing the JXA Notification Center call must fail this test."""
         run = MagicMock()
         with patch.object(notifier, "SYSTEM", "Darwin"), patch.object(
-            notifier.subprocess, "run", run
-        ):
+            notifier.shutil, "which", return_value=None
+        ), patch.object(notifier.subprocess, "run", run):
             sent = notifier.send_notification("Build complete", "All checks passed", play_snd=False)
 
         self.assertTrue(sent["notification"])
@@ -49,6 +49,49 @@ class NotifierTests(unittest.TestCase):
         self.assertIn("NSUserNotificationCenter", command[4])
         self.assertIn('"Build complete"', command[4])
         self.assertIn("pintumcp-icon.png", command[4])
+
+    def test_macos_prefers_authorised_terminal_notifier_and_activates_the_agent_app(self):
+        """Dropping -activate loses click-to-focus; ignoring authorisation loses alerts."""
+        run = MagicMock(return_value=SimpleNamespace(stdout="  authorization       authorized\n"))
+        with patch.object(notifier, "SYSTEM", "Darwin"), patch.object(
+            notifier, "_tn_ready", None
+        ), patch.object(notifier.shutil, "which", return_value="/opt/tn"), patch.dict(
+            notifier.os.environ, {"__CFBundleIdentifier": "com.apple.Terminal"}
+        ), patch.object(notifier.subprocess, "run", run):
+            sent = notifier.send_notification("Done", "ok", play_snd=False)
+
+        self.assertTrue(sent["notification"])
+        command = run.call_args.args[0]
+        self.assertEqual(command[0], "/opt/tn")
+        self.assertEqual(command[command.index("-activate") + 1], "com.apple.Terminal")
+
+    def test_macos_ignores_unauthorised_terminal_notifier(self):
+        run = MagicMock(return_value=SimpleNamespace(stdout="  authorization       not determined\n"))
+        with patch.object(notifier, "SYSTEM", "Darwin"), patch.object(
+            notifier, "_tn_ready", None
+        ), patch.object(notifier.shutil, "which", return_value="/opt/tn"), patch.object(
+            notifier.subprocess, "run", run
+        ):
+            notifier.send_notification("Done", "ok", play_snd=False)
+
+        self.assertEqual(run.call_args.args[0][:2], ["osascript", "-l"])
+
+    def test_macos_falls_back_to_plain_display_notification(self):
+        """If the deprecated JXA API ever breaks, an alert must still appear."""
+        def fake_run(command, **kwargs):
+            if "JavaScript" in command:
+                raise notifier.subprocess.CalledProcessError(1, command)
+            return SimpleNamespace(stdout="")
+
+        run = MagicMock(side_effect=fake_run)
+        with patch.object(notifier, "SYSTEM", "Darwin"), patch.object(
+            notifier.shutil, "which", return_value=None
+        ), patch.object(notifier.subprocess, "run", run):
+            sent = notifier.send_notification("Build \"x\"", "line", play_snd=False)
+
+        self.assertTrue(sent["notification"])
+        self.assertEqual(run.call_args.args[0][:2], ["osascript", "-e"])
+        self.assertIn('display notification "line" with title "Build \\"x\\""', run.call_args.args[0][2])
 
     def test_windows_uses_the_quiet_system_notification_sound(self):
         """Replacing the system notification sound with a raw beep must fail this test."""

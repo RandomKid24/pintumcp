@@ -31,14 +31,12 @@ class ServerTests(unittest.TestCase):
                 filecmp.cmp(ROOT / name, ROOT / "npm/python" / name, shallow=False),
                 f"npm/python/{name} drifted; run scripts/sync.sh",
             )
-        self.assertTrue(
-            filecmp.cmp(
-                ROOT / "assets/pintumcp-icon.png",
-                ROOT / "npm/python/assets/pintumcp-icon.png",
-                shallow=False,
-            ),
-            "icon drifted; run scripts/sync.sh",
-        )
+        for icon in [ROOT / "assets/pintumcp-icon.png", *(ROOT / "assets/icons").glob("*.png")]:
+            copy = ROOT / "npm/python/assets" / icon.relative_to(ROOT / "assets")
+            self.assertTrue(
+                copy.is_file() and filecmp.cmp(icon, copy, shallow=False),
+                f"{copy.name} drifted; run scripts/sync.sh",
+            )
 
 
 if __name__ == "__main__":
