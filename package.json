@@ -1,0 +1,27 @@
+{
+  "name": "pintumcp",
+  "version": "1.0.0",
+  "description": "Agent Alerts MCP — desktop notifications with sound for AI coding agents",
+  "main": "npm/bin/pintumcp.js",
+  "bin": {
+    "pintumcp": "npm/bin/pintumcp.js"
+  },
+  "scripts": {
+    "postinstall": "node npm/install.js"
+  },
+  "keywords": [
+    "mcp",
+    "notifications",
+    "agent",
+    "alerts",
+    "claude",
+    "codex",
+    "opencode",
+    "mimocode",
+    "antigravity"
+  ],
+  "license": "MIT",
+  "files": [
+    "npm/"
+  ]
+}
