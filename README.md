@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/MCP-Server-blue?style=for-the-badge&logo=modelcontextprotocol&logoColor=white" alt="MCP Server">
   <img src="https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-green?style=for-the-badge" alt="Cross Platform">
   <img src="https://img.shields.io/badge/Python-3.10+-yellow?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/npm/v/pintumcp?style=for-the-badge&logo=npm&logoColor=white" alt="npm">
+  <img src="https://img.shields.io/github/stars/RandomKid24/pintumcp?style=for-the-badge&logo=github&logoColor=white" alt="Stars">
   <img src="https://img.shields.io/github/license/RandomKid24/pintumcp?style=for-the-badge" alt="License">
 </p>
 
@@ -14,24 +14,22 @@
 </p>
 
 <p align="center">
-  <code>npm install -g pintumcp</code> → done. Every agent in every tool can now ping you.
+  One command. Every tool. Zero config. Runs locally.
 </p>
 
 ---
 
-## Why?
+## The Problem
 
-You kick off a long-running task in Claude. You switch to another tab. Five minutes later, the agent is done — but you don't know. You miss the output. You miss the question. You waste time.
+You kick off a long task in Claude. You switch tabs. Five minutes later the agent is done — but you don't know. You miss the output. You miss the question. You waste time scrolling back.
 
-**pintumcp fixes this.** When an agent finishes, asks a question, or hits an error, you get a desktop notification **with sound**. Cross-platform. Zero config. Works everywhere.
-
-## Install
+## The Fix
 
 ```bash
-npx pintumcp
+npx github:RandomKid24/pintumcp
 ```
 
-One command. That's it. This will:
+That's it. One command. This will:
 
 ```
  Scanning your machine for AI coding tools...
@@ -55,6 +53,21 @@ One command. That's it. This will:
 
 **No API keys. No accounts. No cloud. Everything runs locally.**
 
+---
+
+## How It Works
+
+Once configured, the MCP server starts **automatically** when you open any supported tool. The tool reads its config, sees `pintumcp`, and spawns the server in the background. You don't start it manually — it's always there.
+
+When an agent calls a tool like `agent_done` or `agent_question`:
+
+1. A **native desktop notification** appears (macOS Notification Center / Windows Toast / Linux notify-send)
+2. A **distinct sound** plays — so you hear it even if you're not looking at the screen
+
+Every notification **always plays sound**. You will hear it.
+
+---
+
 ## Supported Tools
 
 | Tool | Status | Config |
@@ -67,16 +80,9 @@ One command. That's it. This will:
 | **Antigravity** | Auto-detected | `~/Library/Application Support/Antigravity/User/settings.json` |
 | **VS Code** | Auto-detected | `~/Library/Application Support/Code/User/settings.json` |
 
-> Don't see your tool? Run `npx pintumcp detect` to check, or add it manually.
+> Don't see your tool? Run `npx github:RandomKid24/pintumcp detect` to check, or add it manually.
 
-## How It Works
-
-Once configured, the MCP server starts **automatically** when you open any supported tool. The tool reads its config, sees `pintumcp`, and spawns the server in the background. You don't start it manually — it's always there, waiting to alert you.
-
-When an agent calls a tool like `agent_done` or `agent_question`, pintumcp:
-
-1. Shows a **native desktop notification** (macOS Notification Center / Windows Toast / Linux notify-send)
-2. Plays a **distinct sound** so you hear it even if you're not looking at the screen
+---
 
 ## MCP Tools
 
@@ -90,8 +96,6 @@ Six tools for every agent situation:
 | `agent_done` | Work finished successfully | Success chime |
 | `agent_question` | Agent needs your input | Attention ping |
 | `agent_error` | Something went wrong | Error tone |
-
-Every notification **always plays sound**. You will hear it.
 
 ### Usage Examples
 
@@ -110,16 +114,20 @@ agent_error("Build failed: missing dependency 'lodash' in package.json")
 
 You'll see a notification and hear the sound immediately — even if you're in a different app.
 
+---
+
 ## Commands
 
 ```bash
-npx pintumcp              # Install + configure everything
-npx pintumcp install      # Same as above
-npx pintumcp detect       # Scan for AI tools (read-only, no changes)
-npx pintumcp test         # Send a test notification + sound
-npx pintumcp run          # Start MCP server manually (stdio mode)
-npx pintumcp help         # Show help
+npx github:RandomKid24/pintumcp              # Install + configure everything
+npx github:RandomKid24/pintumcp install      # Same as above
+npx github:RandomKid24/pintumcp detect       # Scan for AI tools (read-only, no changes)
+npx github:RandomKid24/pintumcp test         # Send a test notification + sound
+npx github:RandomKid24/pintumcp run          # Start MCP server manually (stdio mode)
+npx github:RandomKid24/pintumcp help         # Show help
 ```
+
+---
 
 ## Sounds
 
@@ -133,9 +141,11 @@ Five built-in sounds, each mapped to a different situation:
 | `error` | Alert tone | Sosumi.aiff | 400Hz beep | System beep |
 | `complete` | Done signal | Blow.aiff | 800Hz beep | System beep |
 
+---
+
 ## Configuration
 
-Edit `config.json` in the install directory (`<npm-global>/pintumcp/python/config.json`):
+Edit `config.json` in the install directory:
 
 ```json
 {
@@ -162,6 +172,8 @@ export PINTUMCP_VOLUME=100
 | `PINTUMCP_SOUND` | Default sound name | `default` |
 | `PINTUMCP_VOLUME` | Volume (0-100) | `80` |
 
+---
+
 ## Cross-Platform
 
 | | macOS | Windows | Linux |
@@ -170,20 +182,24 @@ export PINTUMCP_VOLUME=100
 | **Sound** | `afplay` with system .aif | `winsound.Beep` | `paplay` / beep |
 | **Deps** | None (built-in) | `winotify` (auto-installed) | `libnotify-bin` |
 
+---
+
 ## Troubleshooting
 
 | Problem | Fix |
 |---------|-----|
-| No sound on macOS | System Preferences > Sound > Enable "Play sound on startup" and system sounds |
+| No sound on macOS | System Settings > Sound > Enable system sounds |
 | No notification on Linux | `sudo apt install libnotify-bin` |
 | No notification on Windows | `pip install winotify` in the venv |
 | Python not found | Install Python 3.10+ and ensure `python3` is in PATH |
-| Tool not detected | Run `npx pintumcp detect` to check, or configure manually |
+| Tool not detected | Run `npx github:RandomKid24/pintumcp detect` to check |
 | Config not taking effect | Restart the AI tool — MCP servers load at startup |
+
+---
 
 ## Manual Setup
 
-If you prefer not to use npm:
+If you prefer not to use npx:
 
 ```bash
 git clone https://github.com/RandomKid24/pintumcp.git
@@ -207,15 +223,17 @@ Then add this to your tool's MCP config:
 }
 ```
 
+---
+
 ## Architecture
 
 ```
 pintumcp/
-├── npm/                    # npm package (what you install)
-│   ├── bin/pintumcp.js     # CLI entry point
+├── npm/                    # CLI installer (what npx runs)
+│   ├── bin/pintumcp.js     # Entry point
 │   ├── lib/
 │   │   ├── detect.js       # AI tool auto-detection
-│   │   └── configure.js    # Config writer for each tool
+│   │   └── configure.js    # Config writer per tool
 │   ├── python/
 │   │   ├── server.py       # MCP server (Python)
 │   │   ├── notifier.py     # Cross-platform notifications + sound
@@ -230,6 +248,8 @@ pintumcp/
 ├── requirements.txt        # Python dependencies
 └── README.md
 ```
+
+---
 
 ## License
 
