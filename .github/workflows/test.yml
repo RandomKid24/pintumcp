@@ -36,7 +36,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libnotify-bin dunst xvfb dbus-x11
-          xvfb-run -a dbus-run-session -- sh -c 'python tests/smoke.py && sleep 2 && dunstctl history | tee /dev/stderr | grep -q "CI · smoke: Task Complete"'
+          xvfb-run -a dbus-run-session -- sh -c 'python tests/smoke.py && sleep 2 && dunstctl close-all && dunstctl history | tee /dev/stderr | grep -q "CI · smoke: Task Complete"'
       - name: Smoke test
         if: runner.os != 'Linux'
         run: python tests/smoke.py
