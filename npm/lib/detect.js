@@ -48,6 +48,7 @@ function detect() {
       configPath: opencodeCfg,
       format: "json",
       mcpKey: "mcp",
+      mimocodeFormat: true,
     });
   }
 

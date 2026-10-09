@@ -10,11 +10,12 @@ function buildMcpEntry(pythonPath, serverPath) {
   };
 }
 
-// MiMoCode uses: { "type": "local", "command": ["python", "server.py"] }
+// MiMoCode/OpenCode use: { "type": "local", "command": ["python", "server.py"] }
 function buildMimocodeEntry(pythonPath, serverPath) {
   return {
     type: "local",
     command: [pythonPath, serverPath],
+    enabled: true, // OpenCode requires this key
   };
 }
 
