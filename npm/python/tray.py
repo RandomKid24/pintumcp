@@ -19,9 +19,22 @@ NEEDS_YOU = ("approval", "error", "question")
 WIDTH = 520
 
 
-def icon_for(state: str) -> str:
-    path = ICONS / f"{state}.png"
-    return str(path if path.exists() else ICONS / "empty.png")
+def frames_for(name: str) -> list:
+    return sorted(str(p) for p in ICONS.glob(f"{name}_*.png"))
+
+
+# With nothing urgent Pintu keeps busy: wave, sweater, coffee, music, nap (one activity every ~6s).
+IDLE_ACTIVITIES = ("empty", "sweater", "coffee", "music", "sleep")
+TICKS_PER_ACTIVITY = 15  # at 0.4s a frame
+
+
+def frame_for(state: str, n: int) -> str:
+    """Menu-bar image path for animation tick n."""
+    name = state
+    if state in ("empty", "idle"):
+        name = IDLE_ACTIVITIES[(n // TICKS_PER_ACTIVITY) % len(IDLE_ACTIVITIES)]
+    frames = frames_for(name) or frames_for("empty")
+    return frames[n % len(frames)]
 
 
 def bar_state(items: list) -> tuple:
@@ -90,7 +103,16 @@ def main() -> None:
             NSEvent.addGlobalMonitorForEventsMatchingMask_handler_((1 << 1) | (1 << 3), lambda e: self.hide())
 
             NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(1.0, self, "tick:", None, True)
+            self.frame = 0
+            self.state = "empty"
+            NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(0.4, self, "animate:", None, True)
             self.tick_(None)
+
+        def animate_(self, _timer):
+            self.frame += 1
+            image = NSImage.alloc().initWithContentsOfFile_(frame_for(self.state, self.frame))
+            image.setSize_(SIZE)
+            self.item.button().setImage_(image)
 
         # ---- panel
         def toggle_(self, _sender):
@@ -128,10 +150,9 @@ def main() -> None:
             state, badge = bar_state(self.items)
             if (state, badge) != self.last_icon:
                 self.last_icon = (state, badge)
-                image = NSImage.alloc().initWithContentsOfFile_(icon_for(state))
-                image.setSize_(SIZE)
-                self.item.button().setImage_(image)
+                self.state = state
                 self.item.button().setTitle_(" " + badge if badge else "")
+                self.animate_(None)
             if self.win.isVisible():
                 self.push()
 
