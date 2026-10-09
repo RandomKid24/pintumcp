@@ -77,7 +77,7 @@ def browser_app_command(url: str):
                 candidates += [os.path.join(base, "Microsoft", "Edge", "Application", "msedge.exe"),
                                os.path.join(base, "Google", "Chrome", "Application", "chrome.exe")]
     exe = next((c for c in candidates if c and os.path.exists(c)), None)
-    return [exe, f"--app={url}", "--window-size=420,760"] if exe else None
+    return [exe, f"--app={url}", "--window-size=400,720"] if exe else None
 
 
 def open_panel():

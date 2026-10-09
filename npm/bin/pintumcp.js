@@ -253,6 +253,23 @@ function cmdDoctor() {
   }
 }
 
+// Ubuntu/GNOME shows tray icons only through AppIndicator, which pystray reaches via PyGObject ("gi").
+// The venv can't see the system's gi unless system site-packages are on, so turn that on and re-check.
+function ensureLinuxTray(py) {
+  const probe = () => { try { execSync(`"${py}" -c "import gi"`, { stdio: "ignore" }); return true; } catch { return false; } };
+  if (probe()) return;
+  const cfg = path.join(VENV_DIR, "pyvenv.cfg");
+  try { fs.writeFileSync(cfg, fs.readFileSync(cfg, "utf-8").replace("include-system-site-packages = false", "include-system-site-packages = true")); } catch {}
+  if (probe()) return;
+  console.log(`
+  Pintu needs the system AppIndicator libraries to show in the Ubuntu tray. Run:
+
+    sudo apt install python3-gi gir1.2-ayatanaappindicator3-0.1 gnome-shell-extension-appindicator
+    gnome-extensions enable ubuntu-appindicators@ubuntu.com    # then log out and in once
+
+  Then run \`npx pintumcp tray\` again.\n`);
+}
+
 function cmdTray(sub) {
   const mac = process.platform === "darwin", script = mac ? "tray.py" : "tray_cross.py";
   if (sub === "stop-quiet") {
@@ -279,6 +296,7 @@ function cmdTray(sub) {
     console.log(`Installing the tray dependency (${pkg})...`);
     execSync(`"${py}" -m pip install ${mac ? `"${pkg}"` : pkg} --quiet`, { stdio: "inherit" });
   }
+  if (process.platform === "linux") ensureLinuxTray(py);
   cmdTray("stop-quiet");
   const child = spawn(py, [path.join(PYTHON_DIR, script)], { detached: true, stdio: "ignore", cwd: PYTHON_DIR, windowsHide: true });
   child.unref();
