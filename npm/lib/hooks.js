@@ -1,7 +1,7 @@
 // Add/remove pintumcp's Claude Code hooks (they feed the menu-bar status board).
 const fs = require("fs");
 
-const EVENTS = ["UserPromptSubmit", "Notification", "Stop"];
+const EVENTS = ["UserPromptSubmit", "Notification", "PostToolUse", "Stop", "SessionEnd"];
 const isOurs = (h) => typeof h.command === "string" && h.command.includes("pintumcp") && h.command.includes("hook.py");
 
 function load(settingsPath) {

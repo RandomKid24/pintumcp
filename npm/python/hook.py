@@ -1,6 +1,6 @@
 """Claude Code hook: report this session's state to the local status board.
 
-Usage (set up by `pintumcp hooks install`):  python hook.py <UserPromptSubmit|Notification|Stop>
+Usage (set up by `pintumcp hooks install`):  python hook.py <UserPromptSubmit|Notification|PostToolUse|Stop|SessionEnd>
 Reads the hook JSON on stdin. Best effort: it always exits 0 so it can never block Claude.
 """
 
@@ -23,6 +23,10 @@ def classify(event: str, payload: dict):
         return ("approval" if needs_permission else "question"), message or "Needs you"
     if event == "Stop":
         return "done", "Finished responding"
+    if event == "PostToolUse":  # a tool ran, so any pending permission/question was answered
+        return "working", "Working on your request"
+    if event == "SessionEnd":
+        return "gone", ""
     return None
 
 
@@ -37,6 +41,8 @@ def main() -> None:
     if result:
         project = Path(payload.get("cwd") or os.getcwd()).name
         agent = "Claude " + str(payload.get("session_id") or "")[:4]
+        if result[0] == "gone":
+            return status.remove(project, agent.strip())
         status.update(result[0], result[1], project, agent.strip(), app=os.environ.get("__CFBundleIdentifier"))
         if result[0] in ("done", "approval", "question"):
             import events

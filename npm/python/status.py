@@ -17,6 +17,7 @@ URGENCY = {"approval": 0, "error": 1, "question": 2, "working": 3, "done": 4, "i
 IDLE_AFTER = 30 * 60      # a finished agent is "idle" after this many seconds
 STALE_AFTER = 10 * 60     # a working agent that went quiet this long may be stuck
 FORGET_AFTER = 12 * 3600  # drop agents that have not reported for this long
+FORGET_NEEDS_AFTER = 2 * 3600   # an unanswered approval/question this old was abandoned
 FORGET_WORKING_AFTER = 30 * 60  # a "working" agent silent this long is a dead session, not a busy one
 
 
@@ -108,7 +109,8 @@ def snapshot(now: float | None = None) -> list[dict]:
             age = now - item["updated"]
         except (OSError, ValueError, KeyError):
             continue
-        if age > FORGET_AFTER or (item.get("state") == "working" and age > FORGET_WORKING_AFTER):
+        if age > FORGET_AFTER or (item.get("state") == "working" and age > FORGET_WORKING_AFTER) \
+                or (item.get("state") in ("approval", "question") and age > FORGET_NEEDS_AFTER):
             path.unlink(missing_ok=True)
             continue
         item["age"] = age
@@ -119,6 +121,10 @@ def snapshot(now: float | None = None) -> list[dict]:
         items.append(item)
     items.sort(key=lambda i: (URGENCY.get(i["state"], 9), i["age"]))
     return items
+
+
+def remove(project: str, agent: str) -> None:
+    _path(*identity(project, agent)).unlink(missing_ok=True)
 
 
 def clear_finished() -> None:
