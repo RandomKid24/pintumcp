@@ -76,6 +76,7 @@ def main() -> None:
             self.items = []
             self.height = 600
             self.last_icon = None
+            self.shown_at = 0.0
             bar = NSStatusBar.systemStatusBar()
             self.item = bar.statusItemWithLength_(NSVariableStatusItemLength)
             self.item.button().setTarget_(self)
@@ -100,7 +101,7 @@ def main() -> None:
             self.win.setContentView_(self.web)
             self.win.setReleasedWhenClosed_(False)
             # click anywhere outside the panel to dismiss it
-            NSEvent.addGlobalMonitorForEventsMatchingMask_handler_((1 << 1) | (1 << 3), lambda e: self.hide())
+            NSEvent.addGlobalMonitorForEventsMatchingMask_handler_((1 << 1) | (1 << 3), lambda e: time.time() - self.shown_at > 0.4 and self.hide())  # the status-item click itself also reaches this monitor
 
             NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(1.0, self, "tick:", None, True)
             self.frame = 0
@@ -124,6 +125,7 @@ def main() -> None:
             screen = NSScreen.mainScreen().frame()
             x = min(max(frame.origin.x + frame.size.width / 2 - WIDTH / 2, 8), screen.size.width - WIDTH - 8)
             self.win.setFrame_display_(NSMakeRect(x, frame.origin.y - self.height - 6, WIDTH, self.height), True)
+            self.shown_at = time.time()
             self.push()
             self.win.makeKeyAndOrderFront_(None)
 
