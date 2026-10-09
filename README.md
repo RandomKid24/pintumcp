@@ -215,9 +215,9 @@ The menu-bar icon itself is animated. It shows the most urgent agent's face (wit
 | | macOS | Windows / Linux |
 |---|---|---|
 | Icon | animated menu-bar icon | animated tray icon (his line shows as the hover tooltip) |
-| Panel | native dropdown | the same dashboard in a small app window (Edge/Chrome app mode, or your browser) |
+| Panel | native dropdown | Windows: a small borderless popup above the tray that hides when you click away. Linux: the dashboard in a small app window |
 | Starts at login | LaunchAgent | Startup folder / `~/.config/autostart` |
-| Needs | `pyobjc-framework-WebKit` (auto-installed) | `pystray` + `pillow` (auto-installed); Linux also needs a tray/AppIndicator |
+| Needs | `pyobjc-framework-WebKit` (auto-installed) | `pystray` + `pillow` (auto-installed). Ubuntu: the installer asks for your password once (graphical prompt) to add the AppIndicator libraries |
 
 **Also in the app**
 

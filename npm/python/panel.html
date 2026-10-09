@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pintumcp</title>
+<title>Pintu panel</title>
 <style>
   :root {
     --bg: #000; --card: #131316; --card-2: #1b1b20; --line: rgba(255,255,255,.07);
@@ -72,7 +72,8 @@
   .axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; }
   footer { display: flex; justify-content: space-between; color: var(--muted); font-size: 10.5px; padding: 8px 6px 0; }
   body.live { background: #000; }
-  body.live .panel { width: 100%; min-height: 100vh; border-radius: 0; border: 0; }
+  html:has(body.live) { background: #000; }
+  body.live .panel { width: 100%; border-radius: 0; border: 0; }
   @keyframes pop { from { opacity: 0; transform: translateY(-10px) scale(.94); } to { opacity: 1; transform: none; } }
   body.out .panel { animation: none; opacity: 0; transform: translateY(-8px) scale(.96); transition: opacity .15s ease, transform .15s ease; }
   #herosub { transition: opacity .25s ease; position: relative; background: var(--card-2); border-radius: 12px; padding: 6px 9px; margin-top: 6px; font-size: 12px; color: var(--text); white-space: normal; }
@@ -339,7 +340,10 @@ const LIVE = !window.webkit && location.search.includes("live");     // Windows/
 if (LIVE) {
   document.body.classList.add("live");
   const token = new URLSearchParams(location.search).get("t");
-  post = (msg) => { if (["clear", "doctor", "mute", "quit"].includes(msg.type)) fetch(`/act/${msg.type}?t=${token}`, {method: "POST"}); };
+  post = (msg) => {
+    if (msg.type === "size") fetch(`/act/size?h=${Math.ceil(msg.height) + 2}&t=${token}`, {method: "POST"});
+    else if (["clear", "doctor", "mute", "quit"].includes(msg.type)) fetch(`/act/${msg.type}?t=${token}`, {method: "POST"});
+  };
   const poll = () => fetch("/state").then((r) => r.json()).then(render).catch(() => {});
   poll(); setInterval(() => active && poll(), 1000);
   document.addEventListener("visibilitychange", () => { active = !document.hidden; if (active) window.opening(); });

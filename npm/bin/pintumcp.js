@@ -261,13 +261,19 @@ function ensureLinuxTray(py) {
   const cfg = path.join(VENV_DIR, "pyvenv.cfg");
   try { fs.writeFileSync(cfg, fs.readFileSync(cfg, "utf-8").replace("include-system-site-packages = false", "include-system-site-packages = true")); } catch {}
   if (probe()) return;
+  // Ask for the missing system packages through the desktop's own password prompt (pkexec), then enable the tray extension.
+  const pkgs = "python3-gi gir1.2-ayatanaappindicator3-0.1 gnome-shell-extension-appindicator";
+  try {
+    console.log("Installing the Ubuntu tray libraries (a password prompt will appear)...");
+    execSync(`pkexec apt-get install -y ${pkgs}`, { stdio: "inherit" });
+    try { execSync("gnome-extensions enable ubuntu-appindicators@ubuntu.com", { stdio: "ignore" }); } catch {}
+  } catch {}
+  if (probe()) return;
   console.log(`
-  Pintu needs the system AppIndicator libraries to show in the Ubuntu tray. Run:
+  Pintu still can't reach the Ubuntu tray. Install the libraries once, then log out and in:
 
-    sudo apt install python3-gi gir1.2-ayatanaappindicator3-0.1 gnome-shell-extension-appindicator
-    gnome-extensions enable ubuntu-appindicators@ubuntu.com    # then log out and in once
-
-  Then run \`npx pintumcp tray\` again.\n`);
+    sudo apt install ${pkgs}
+`);
 }
 
 function cmdTray(sub) {

@@ -16,7 +16,7 @@ import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pystray
 from PIL import Image
@@ -26,6 +26,7 @@ import tray  # constants and payload() only; its macOS code lives inside main()
 
 HERE = Path(__file__).parent
 SERVER_PORT = 0  # chosen at start
+POPUP = None  # Windows: the borderless popup (winpopup.Popup)
 TOKEN = f"{random.getrandbits(64):x}"  # other local pages can't poke the server without it
 ACTIONS = {"clear": lambda: status.clear_finished(),
            "mute": lambda: status.set_mute(0 if status.muted_until() else 3600), "doctor": lambda: __import__("events").deliver_event(
@@ -62,6 +63,8 @@ class Handler(BaseHTTPRequestHandler):
         if name == "quit":
             self._send(b"ok", "text/plain")
             return os._exit(0)
+        if name == "size" and POPUP:
+            POPUP.resize(int(parse_qs(url.query).get("h", ["720"])[0]))
         if name in ACTIONS:
             ACTIONS[name]()
         self._send(b"ok", "text/plain")
@@ -83,6 +86,8 @@ def browser_app_command(url: str):
 def open_panel():
     url = f"http://127.0.0.1:{SERVER_PORT}/?live&t={TOKEN}"
     command = browser_app_command(url)
+    if POPUP:
+        return POPUP.toggle()
     if command:
         subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
@@ -98,6 +103,14 @@ def main():
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     SERVER_PORT = server.server_address[1]
     threading.Thread(target=server.serve_forever, daemon=True).start()
+    if sys.platform == "win32":
+        global POPUP
+        import winpopup
+        url = f"http://127.0.0.1:{SERVER_PORT}/?live&t={TOKEN}"
+        command = browser_app_command(url)
+        if command:
+            command += [f"--user-data-dir={status.root() / 'edge-profile'}", "--no-first-run", "--no-default-browser-check"]
+            POPUP = winpopup.Popup(url, command)
 
     menu = pystray.Menu(
         pystray.MenuItem("Open Pintu", lambda: open_panel(), default=True),
