@@ -27,6 +27,7 @@ EVENT_DETAILS = {
     "approval": ("Approval Needed", "normal", "attention"),
     "error": ("Error", "critical", "error"),
     "working": ("Started", "normal", None),  # silent heads-up; icon is the thinking face
+    "stuck": ("Maybe Stuck", "normal", "attention"),
 }
 ICON_FOR = {"working": "thinking"}  # event -> face, when it differs from the event name
 BUNDLE_PARTY = 3  # this many completions in one bundle get the party face
@@ -54,8 +55,11 @@ def in_quiet_hours(now: datetime | None = None) -> bool:
 
 def event_icon(face: str) -> Path | None:
     """Pintu face icon by name, if the file ships; otherwise the default icon."""
-    path = notifier.ICON_DIR / "icons" / f"{face}.png"
-    return path if path.is_file() else None
+    for folder in ("faces", "icons"):  # faces/ are transparent; icons/ have a background
+        path = notifier.ICON_DIR / folder / f"{face}.png"
+        if path.is_file():
+            return path
+    return None
 
 
 def clean_label(value: str | None) -> str | None:

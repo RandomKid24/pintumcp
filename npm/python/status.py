@@ -17,6 +17,7 @@ URGENCY = {"approval": 0, "error": 1, "question": 2, "working": 3, "done": 4, "i
 IDLE_AFTER = 30 * 60      # a finished agent is "idle" after this many seconds
 STALE_AFTER = 10 * 60     # a working agent that went quiet this long may be stuck
 FORGET_AFTER = 12 * 3600  # drop agents that have not reported for this long
+FORGET_WORKING_AFTER = 30 * 60  # a "working" agent silent this long is a dead session, not a busy one
 
 
 def root() -> Path:
@@ -107,7 +108,7 @@ def snapshot(now: float | None = None) -> list[dict]:
             age = now - item["updated"]
         except (OSError, ValueError, KeyError):
             continue
-        if age > FORGET_AFTER:
+        if age > FORGET_AFTER or (item.get("state") == "working" and age > FORGET_WORKING_AFTER):
             path.unlink(missing_ok=True)
             continue
         item["age"] = age
@@ -186,3 +187,54 @@ def today_stats(now: float | None = None, hours: int = 12) -> dict:
     for t in started.values():
         longest = max(longest, now - t)  # still running
     return {"done": done, "errors": errors, "trend": trend, "longest": format_age(longest) if longest else "-"}
+
+
+# ---- mute, tray heartbeat and toast hand-off (small files, same no-daemon style as the agent rows)
+def muted_until() -> float:
+    """Epoch seconds until which alerts are muted (0 when not muted)."""
+    try:
+        until = float((root() / "mute_until").read_text())
+    except (OSError, ValueError):
+        return 0.0
+    return until if until > time.time() else 0.0
+
+
+def set_mute(seconds: float) -> None:
+    """Mute alerts for `seconds`; 0 unmutes."""
+    path = root() / "mute_until"
+    if seconds <= 0:
+        path.unlink(missing_ok=True)
+    else:
+        path.write_text(str(time.time() + seconds))
+
+
+def tray_heartbeat() -> None:
+    (root() / "tray.alive").write_text(str(time.time()))
+
+
+def tray_alive() -> bool:
+    try:
+        return time.time() - float((root() / "tray.alive").read_text()) < 4
+    except (OSError, ValueError):
+        return False
+
+
+def queue_toast(toast: dict) -> None:
+    """Hand an alert to the tray app, which shows it as an animated Pintu popup."""
+    folder = root() / "toasts"
+    folder.mkdir(mode=0o700, exist_ok=True)
+    tmp = folder / f"{time.time_ns()}.tmp"
+    tmp.write_text(json.dumps(toast), encoding="utf-8")
+    os.replace(tmp, tmp.with_suffix(".json"))
+
+
+def take_toasts() -> list[dict]:
+    """Newest-last list of queued toasts; the files are removed."""
+    out = []
+    for path in sorted((root() / "toasts").glob("*.json")) if (root() / "toasts").is_dir() else []:
+        try:
+            out.append(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, ValueError):
+            pass
+        path.unlink(missing_ok=True)
+    return out

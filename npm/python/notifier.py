@@ -268,6 +268,19 @@ def _linux_notify(title: str, message: str, icon: Path = ICON_PATH) -> bool:
         return False
 
 
+def _toast(title: str, message: str, icon: Path) -> bool:
+    """Hand the alert to the menu-bar app (animated popup) when it is running."""
+    try:
+        import status
+        if not status.tray_alive():
+            return False
+        status.queue_toast({"title": title, "message": message, "face": Path(icon).stem,
+                            "app": os.environ.get("__CFBundleIdentifier")})
+        return True
+    except Exception:
+        return False
+
+
 def send_notification(
     title: str,
     message: str,
@@ -279,7 +292,9 @@ def send_notification(
     """Send a platform-native popup and, by default, a gentle sound."""
     result = {"notification": False, "sound": False, "platform": SYSTEM}
     icon = icon or ICON_PATH
-    if SYSTEM == "Darwin":
+    if SYSTEM == "Darwin" and _toast(title, message, icon):
+        result["notification"] = True  # the tray app shows it as an animated Pintu popup
+    elif SYSTEM == "Darwin":
         result["notification"] = _macos_notify(title, message, icon)
     elif SYSTEM == "Windows":
         result["notification"] = _windows_notify(title, message, icon)
@@ -303,6 +318,12 @@ def alert(
     silent: bool = False,
 ) -> dict:
     sound_map = {"low": "default", "normal": "default", "critical": "attention"}
+    try:
+        import status
+        if priority != "critical" and status.muted_until():
+            return {"notification": False, "sound": False, "muted": True}  # Mute from the panel; errors still come through
+    except Exception:
+        pass
     return send_notification(
         title,
         message,

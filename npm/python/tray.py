@@ -18,6 +18,7 @@ ICONS = HERE / "assets" / "menubar"
 SIZE = (18, 16)  # points; the PNGs are exactly 2x
 NEEDS_YOU = ("approval", "error", "question")
 WIDTH = 380
+TOAST_W, TOAST_H, TOAST_SECONDS = 360, 92, 5.5
 
 
 def frames_for(name: str) -> list:
@@ -25,13 +26,13 @@ def frames_for(name: str) -> list:
 
 
 # With nothing urgent Pintu keeps busy: wave, sweater, coffee, music, nap (one activity every ~6s).
-IDLE_ACTIVITIES = ("empty", "sweater", "coffee", "music", "sleep")
+IDLE_ACTIVITIES = ("empty", "sweater", "coffee", "music", "sleep", "hat", "glasses", "umbrella", "party")
 TICKS_PER_ACTIVITY = 15  # at 0.4s a frame
 
 
 def frame_for(state: str, n: int) -> str:
     """Menu-bar image path for animation tick n."""
-    name = state
+    name = "sleep" if state == "muted" else state
     if state in ("empty", "idle"):
         name = IDLE_ACTIVITIES[(n // TICKS_PER_ACTIVITY) % len(IDLE_ACTIVITIES)]
     frames = frames_for(name) or frames_for("empty")
@@ -47,6 +48,7 @@ QUIPS = {
     "done": ["ta-da!", "nailed it", "done & dusted", "too easy", "gg", "boom"],
     "empty": ["zzz", "vibing", "so quiet", "wake me", "any work?", "snack time?", "la la la", "*knits*"],
     "idle": ["zzz", "chillin", "all good", "still here", "waiting...", "*yawn*"],
+    "muted": ["shh", "muted", "zzz", "dnd", "quiet mode"],
 }
 QUIP_SECONDS = 5
 
@@ -70,7 +72,23 @@ def payload(items: list = None, now: float = None) -> dict:
     agents = [{"key": agent_key(i), "name": status.describe(i)["name"], "state": i["state"],
                "message": i["message"], "in_state": i["in_state"], "age": i["age"], "stale": i["stale"]}
               for i in items]
-    return {"now": now, "agents": agents, "today": status.today_stats(now)}
+    return {"now": now, "agents": agents, "today": status.today_stats(now), "muted_until": status.muted_until()}
+
+
+def stuck_alerts(items: list, seen: set) -> None:
+    """One heads-up per agent that went quiet while "working"; forgotten again once it moves on."""
+    stale = {agent_key(i): i for i in items if i.get("stale")}
+    seen &= set(stale)
+    for key, item in stale.items():
+        if key not in seen:
+            seen.add(key)
+            try:
+                import events
+                name = status.describe(item)["name"]
+                events.deliver_event("stuck", f"{name} has been quiet for {int(item['age'] // 60)} min. Maybe stuck?",
+                                     80, item.get("project") or None, item.get("agent") or None)
+            except Exception:
+                pass  # an alert failing must never stop the tray
 
 
 def main() -> None:
@@ -94,6 +112,7 @@ def main() -> None:
             self.hiding = False
             self.images, self.shown, self.title, self.badge = {}, None, None, ""
             self.quip, self.quip_until, self.quip_next = "", 0.0, 0.0
+            self.stuck_seen, self.toast_until, self.toast_app = set(), 0.0, None
             bar = NSStatusBar.systemStatusBar()
             self.item = bar.statusItemWithLength_(NSVariableStatusItemLength)
             self.item.button().setTarget_(self)
@@ -121,6 +140,26 @@ def main() -> None:
             self.win.setReleasedWhenClosed_(False)
             # click anywhere outside the panel to dismiss it
             NSEvent.addGlobalMonitorForEventsMatchingMask_handler_((1 << 1) | (1 << 3), lambda e: time.time() - self.shown_at > 0.4 and self.hide())  # the status-item click itself also reaches this monitor
+
+            # the animated alert popup: a small transparent window at the top-right of the screen
+            tconfig = WKWebViewConfiguration.alloc().init()
+            tcontroller = WKUserContentController.alloc().init()
+            tcontroller.addScriptMessageHandler_name_(self, "pintu")
+            tconfig.setUserContentController_(tcontroller)
+            self.toast_web = WKWebView.alloc().initWithFrame_configuration_(NSMakeRect(0, 0, TOAST_W, TOAST_H), tconfig)
+            self.toast_web.setValue_forKey_(False, "drawsBackground")
+            self.toast_web.loadFileURL_allowingReadAccessToURL_(NSURL.fileURLWithPath_(str(HERE / "toast.html")),
+                                                                NSURL.fileURLWithPath_(str(HERE)))
+            self.toast_win = Panel.alloc().initWithContentRect_styleMask_backing_defer_(
+                NSMakeRect(0, 0, TOAST_W, TOAST_H), 0, NSBackingStoreBuffered, False)
+            self.toast_win.setOpaque_(False)
+            self.toast_win.setBackgroundColor_(NSColor.clearColor())
+            self.toast_win.setHasShadow_(False)
+            self.toast_win.setHidesOnDeactivate_(False)
+            self.toast_win.setLevel_(NSStatusWindowLevel)
+            self.toast_win.setCollectionBehavior_(1 | 256)  # every Space, over full-screen apps
+            self.toast_win.setContentView_(self.toast_web)
+            self.toast_win.setReleasedWhenClosed_(False)
 
             NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(1.0, self, "tick:", None, True)
             self.frame = 0
@@ -200,9 +239,42 @@ def main() -> None:
             self.web.evaluateJavaScript_completionHandler_(
                 "window.render && window.render(" + json.dumps(payload(self.items)) + ")", None)
 
+        # ---- alert popup
+        @objc.python_method
+        def show_toast(self, toast):
+            screen = NSScreen.mainScreen().visibleFrame()
+            x = screen.origin.x + screen.size.width - TOAST_W - 6
+            y = screen.origin.y + screen.size.height - TOAST_H - 4
+            self.toast_win.setFrameOrigin_((x, y))
+            self.toast_web.evaluateJavaScript_completionHandler_("window.toast(" + json.dumps(toast) + ")", None)
+            self.toast_win.orderFrontRegardless()
+            self.toast_until, self.toast_app = time.time() + TOAST_SECONDS, toast.get("app")
+
+        @objc.python_method
+        def hide_toast(self):
+            self.toast_until = 0.0
+            self.toast_web.evaluateJavaScript_completionHandler_("window.toastOut && window.toastOut()", None)
+            NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(0.25, self, "finishToast:", None, False)
+
+        def finishToast_(self, _timer):
+            if time.time() > self.toast_until:
+                self.toast_win.orderOut_(None)
+
         def tick_(self, _timer):
             self.items = status.snapshot()
+            try:
+                status.tray_heartbeat()
+                toasts = status.take_toasts()
+                if toasts:
+                    self.show_toast(toasts[-1])
+                elif self.toast_until and time.time() > self.toast_until:
+                    self.hide_toast()
+            except OSError:
+                pass
+            stuck_alerts(self.items, self.stuck_seen)
             state, badge = bar_state(self.items)
+            if status.muted_until() and state in ("empty", "idle", "done"):
+                state = "muted"
             if (state, badge) != self.last_icon:
                 changed = state != self.state
                 self.last_icon = (state, badge)
@@ -224,6 +296,13 @@ def main() -> None:
                     if agent_key(item) == body.get("key") and item.get("app"):
                         subprocess.run(["open", "-b", item["app"]], check=False)
                         self.hide()
+            elif kind == "mute":
+                status.set_mute(0 if status.muted_until() else 3600)
+                self.tick_(None)
+            elif kind == "toastclick":
+                if body.get("app"):
+                    subprocess.run(["open", "-b", body["app"]], check=False)
+                self.hide_toast()
             elif kind == "clear":
                 status.clear_finished()
                 self.tick_(None)

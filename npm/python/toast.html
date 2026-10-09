@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>pintumcp toast</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { background: transparent; overflow: hidden; }
+  body { font: 13px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; color: #f5f5f7;
+         -webkit-font-smoothing: antialiased; user-select: none; cursor: default; }
+  .toast { display: flex; align-items: center; gap: 10px; width: 340px; margin: 6px 10px; padding: 8px 14px 8px 8px;
+           background: #000; border: 1px solid rgba(255,255,255,.1); border-radius: 22px; box-shadow: 0 8px 30px rgba(0,0,0,.45);
+           opacity: 0; transform: translateX(40px); }
+  .toast.in { animation: slide .35s cubic-bezier(.2,.9,.3,1.15) both; }
+  .toast.out { opacity: 0; transform: translateX(30px); transition: opacity .22s ease, transform .22s ease; }
+  @keyframes slide { from { opacity: 0; transform: translateX(40px) scale(.96); } to { opacity: 1; transform: none; } }
+  .tile { width: 70px; height: 64px; flex: none; display: grid; place-items: center; border-radius: 16px; background: #131316; }
+  canvas { width: 62px; height: 56px; image-rendering: pixelated; }
+  .text { min-width: 0; flex: 1; }
+  .title { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--c, #fff); }
+  .msg { margin-top: 2px; font-size: 12px; color: #c4c4c9; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="toast" id="toast">
+  <div class="tile"><canvas id="pet" width="132" height="120"></canvas></div>
+  <div class="text"><div class="title" id="title"></div><div class="msg" id="msg"></div></div>
+</div>
+<script src="pet.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const MODE = {done: "done", approval: "approval", question: "question", error: "error", thinking: "working", sleepy: "nap", party: "party", stuck: "question"};
+const COLOR = {done: "#3ddc97", approval: "#ff8a3d", question: "#ffb830", error: "#ff5c5c", stuck: "#ffb830"};
+const ctx = $("pet").getContext("2d");
+const st = {look: 0, blinkAt: 0, hover: false, jumpUntil: 0, spinUntil: 0, overrideUntil: 0};
+let mode = "wave", app = null, born = 0;
+
+window.toast = (t) => {
+  mode = MODE[t.face] || "wave"; app = t.app || null; born = performance.now();
+  $("title").textContent = t.title; $("msg").textContent = t.message;
+  $("title").style.setProperty("--c", COLOR[t.face] || "#fff");
+  st.jumpUntil = born + 600; st.spinUntil = mode === "party" ? born + 1400 : 0;
+  const el = $("toast"); el.className = "toast"; void el.offsetWidth; el.className = "toast in";
+};
+window.toastOut = () => { $("toast").className = "toast out"; };
+setInterval(() => {
+  const now = performance.now();
+  if (now > st.blinkAt + 140 && Math.random() < 0.03) st.blinkAt = now;
+  drawPet(ctx, mode, now, st);
+}, 90);
+document.addEventListener("click", () => window.webkit?.messageHandlers?.pintu.postMessage({type: "toastclick", app}));
+if (!window.webkit) window.toast({title: "pintumcp · Agent 1: Task Complete", message: "47 tests pass. Ready to review.", face: "done"});
+</script>
+</body>
+</html>

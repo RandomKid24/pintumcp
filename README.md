@@ -219,6 +219,13 @@ The menu-bar icon itself is animated. It shows the most urgent agent's face (wit
 | Starts at login | LaunchAgent | Startup folder / `~/.config/autostart` |
 | Needs | `pyobjc-framework-WebKit` (auto-installed) | `pystray` + `pillow` (auto-installed); Linux also needs a tray/AppIndicator |
 
+**Also in the app**
+
+- **Animated alert popup (macOS):** while the menu-bar app runs, alerts appear as a small floating Pintu card at the top-right (he cheers, hops, sweats or naps to match the event) instead of a plain notification. Click it to jump to the agent's app. If the app isn't running, you get the normal notification.
+- **Stuck alert:** an agent that says "working" but goes quiet for 10 minutes gets one "maybe stuck?" alert. Dead sessions that never report back are dropped after 30 minutes, so the count stays honest.
+- **Mute 1h:** one tap in the panel (or tray menu) silences alerts for an hour; errors still come through. Pintu naps while muted.
+- **Outfits:** when idle he rotates through waving, a knitted sweater, coffee, headphones, a nap, a top hat, glasses, an umbrella in the rain and a party hat.
+
 On Windows and Linux a tiny server on `127.0.0.1` serves the page and your local status files; nothing leaves your machine. Manual control:
 
 ```bash

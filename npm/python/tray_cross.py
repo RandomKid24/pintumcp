@@ -27,7 +27,8 @@ import tray  # constants and payload() only; its macOS code lives inside main()
 HERE = Path(__file__).parent
 SERVER_PORT = 0  # chosen at start
 TOKEN = f"{random.getrandbits(64):x}"  # other local pages can't poke the server without it
-ACTIONS = {"clear": lambda: status.clear_finished(), "doctor": lambda: __import__("events").deliver_event(
+ACTIONS = {"clear": lambda: status.clear_finished(),
+           "mute": lambda: status.set_mute(0 if status.muted_until() else 3600), "doctor": lambda: __import__("events").deliver_event(
     "done", "Test alert from the tray", 40, "pintumcp", "tray")}
 
 
@@ -48,9 +49,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(json.dumps(tray.payload()).encode(), "application/json")
         rel = "panel.html" if url.path in ("/", "") else url.path.lstrip("/")
         target = (HERE / rel).resolve()
-        if HERE not in target.parents or not target.is_file() or target.suffix not in (".html", ".png", ".gif"):
+        if HERE not in target.parents or not target.is_file() or target.suffix not in (".html", ".png", ".gif", ".js"):
             return self._send(b"not found", "text/plain", 404)
-        kind = {".html": "text/html", ".png": "image/png", ".gif": "image/gif"}[target.suffix]
+        kind = {".html": "text/html", ".png": "image/png", ".gif": "image/gif", ".js": "text/javascript"}[target.suffix]
         self._send(target.read_bytes(), kind)
 
     def do_POST(self):
@@ -100,6 +101,7 @@ def main():
 
     menu = pystray.Menu(
         pystray.MenuItem("Open Pintu", lambda: open_panel(), default=True),
+        pystray.MenuItem("Mute for 1 hour", lambda: ACTIONS["mute"]()),
         pystray.MenuItem("Clear finished", lambda: status.clear_finished()),
         pystray.MenuItem("Send test alert", lambda: ACTIONS["doctor"]()),
         pystray.MenuItem("Quit", lambda icon: (icon.stop(), os._exit(0))),
@@ -107,13 +109,16 @@ def main():
     icon = pystray.Icon("pintumcp", icon_image(tray.frame_for("empty", 0)), "Pintu", menu)
 
     def animate():
-        frame, state, quip_until, quip_next, quip, last = 0, "empty", 0.0, 0.0, "", None
+        frame, state, quip_until, quip_next, quip, last, stuck_seen = 0, "empty", 0.0, 0.0, "", None, set()
         while True:
             time.sleep(0.4)
             frame += 1
             try:
                 items = status.snapshot()
+                tray.stuck_alerts(items, stuck_seen)
                 new_state, badge = tray.bar_state(items)
+                if status.muted_until() and new_state in ("empty", "idle", "done"):
+                    new_state = "muted"
                 if new_state != state:
                     state, quip_next = new_state, 0.0
                 now = time.time()

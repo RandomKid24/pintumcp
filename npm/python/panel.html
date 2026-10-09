@@ -95,12 +95,14 @@
   <div class="actions">
     <button data-act="clear"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Clear done</button>
     <button data-act="doctor"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0"/></svg></span>Test alert</button>
+    <button data-act="mute"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></span><i id="mute-label" style="font-style:normal">Mute 1h</i></button>
     <button data-act="quit"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10M5.6 6.6a9 9 0 1 0 12.8 0"/></svg></span>Quit</button>
   </div>
 
   <footer><span>pintumcp</span><span id="updated"></span></footer>
 </div>
 
+<script src="pet.js"></script>
 <script>
 const COLOR = {working: "var(--working)", question: "var(--question)", approval: "var(--approval)",
                error: "var(--error)", done: "var(--done)", idle: "var(--idle)"};
@@ -134,6 +136,9 @@ function render(data) {
 
   $("count").textContent = `${agents.length} agent${agents.length === 1 ? "" : "s"}`;
   pet.data = {agents, needs, working};
+  const muted = (data.muted_until || 0) > data.now;
+  pet.muted = muted;
+  $("mute-label").textContent = muted ? `Unmute (${Math.ceil((data.muted_until - data.now) / 60)}m)` : "Mute 1h";
 
   const urgent = needs.length ? needs[0].state : null;
   $("needs").style.setProperty("--c", urgent ? COLOR[urgent] : COLOR.done);
@@ -170,7 +175,7 @@ function render(data) {
       <div class="stat"><b>${t.done}</b> done &nbsp;·&nbsp; <b style="color:${t.errors ? "var(--error)" : "inherit"}">${t.errors}</b> error${t.errors === 1 ? "" : "s"}</div></div>
     <div class="bars">${t.trend.map((n) => `<i class="${n ? "" : "zero"}" style="height:${n ? Math.max(14, n / peak * 100) : 8}%" title="${n} done"></i>`).join("")}</div>
     <div class="axis"><span>${t.trend.length}h ago</span><span>Longest run ${esc(t.longest)}</span><span>now</span></div>`;
-  $("headline").textContent = needs.length ? `${needs.length} agent${needs.length === 1 ? "" : "s"} need${needs.length === 1 ? "s" : ""} you`
+  $("headline").textContent = muted && !needs.length ? "Shhh, alerts are muted" : needs.length ? `${needs.length} agent${needs.length === 1 ? "" : "s"} need${needs.length === 1 ? "s" : ""} you`
     : working.length ? "Agents are working" : agents.length ? "All done" : "Nothing running";
   saying = {data, needs, working, pinned: saying?.pinned}; say(true);
   $("updated").textContent = "updated just now";
@@ -190,7 +195,7 @@ let saying = null, sayTick = 0;
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 function pool({data, needs, working}) {
   const t = data.today, h = new Date().getHours(), n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
-  const out = [];
+  const out = data.muted_until > data.now ? ["Alerts are asleep. So am I.", "Muted. I will whisper if it burns.", "Quiet mode. Errors still get through."] : [];
   needs.forEach((a) => {
     if (a.state === "approval") out.push(`${a.name} is waiting for your OK.`, `A tiny "yes" would unblock ${a.name}.`, a.message);
     if (a.state === "question") out.push(`${a.name} has a question for you.`, `Quick answer needed on ${a.name}.`, a.message);
@@ -247,97 +252,20 @@ window.closing = () => document.body.classList.add("out");
 // ---- Pintu, alive: a pixel character on a 22x20 grid that blinks, looks at the cursor, reacts and keeps busy.
 const pet = {data: {agents: [], needs: [], working: []}, look: 0, lookAt: 0, blinkAt: 0, hover: false, jumpUntil: 0, spinUntil: 0,
              override: null, overrideUntil: 0, prevNeeds: 0, born: performance.now()};
-const PC = {body: "#48d6be", shade: "#28a096", eye: "#101634", white: "#fff", yel: "#ffb830", stem: "#96aac8", red: "#ff7878", redShade: "#d25a5a",
-            sweater: "#ff6b50", cream: "#ffe296", steam: "#bec8dc", gray: "#5a6272", dark: "#3a4150", glow: "#9ad8ff"};
-const IDLE = ["wave", "sweater", "coffee", "music", "nap"];
+const IDLE = ["wave", "sweater", "coffee", "music", "nap", "hat", "glasses", "umbrella", "party"];
 const POKES = ["Boop!", "Hehe, that tickles.", "I'm working, I swear.", "Again! Again!", "Careful, I'm fragile.", "Five more minutes...", "You rang?", "Pet me gently."];
-const pctx = $("pet").getContext("2d"), S = 6;
+const pctx = $("pet").getContext("2d");
 
 function petMode(now) {
   const {agents, needs, working} = pet.data;
   if (now < pet.overrideUntil && pet.override) return pet.override;
+  if (pet.muted && !pet.data.needs.length) return "nap";
   if (needs.length) return needs[0].state;                  // approval | question | error
   if (working.length) return "working";
   if (agents.some((a) => a.state === "done" && a.age < 90)) return "done";
   return IDLE[Math.floor((now - pet.born) / 9000) % IDLE.length];
 }
 
-function drawPet(now) {
-  const mode = petMode(now), t = now / 1000, frame = Math.floor(now / 350);
-  const err = mode === "error", c = (x, y, col, w = 1, h = 1) => { pctx.fillStyle = col; pctx.fillRect(x * S, y * S, w * S, h * S); };
-  let dx = 0, dy = 0;
-  if (now < pet.jumpUntil) dy = -Math.round(Math.sin((1 - (pet.jumpUntil - now) / 600) * Math.PI) * 3);
-  else if (["approval", "question"].includes(mode)) dy = frame % 3 === 0 ? -2 : 0;
-  if (err) dx = frame % 2 ? 1 : -1;
-  const spin = now < pet.spinUntil;
-  pctx.clearRect(0, 0, 132, 120);
-  if (spin && frame % 2) { pctx.save(); pctx.translate(132, 0); pctx.scale(-1, 1); }
-
-  // shadow
-  pctx.fillStyle = "rgba(255,255,255,.07)"; pctx.fillRect((6 + (dy < -1 ? 1 : 0)) * S, 17 * S, (10 - (dy < -1 ? 2 : 0)) * S, S);
-  const bc = err ? PC.red : PC.body, sh = err ? PC.redShade : PC.shade;
-  const X = (x) => x + dx, Y = (y) => y + dy;
-  const px = (x, y, col, w = 1, h = 1) => c(X(x), Y(y), col, w, h);
-  const breathe = Math.floor(now / 700) % 2;                                   // chest rises
-  // antenna
-  px(10, 3, PC.yel, 2); px(9, 4, PC.yel, 4); px(10, 5, PC.stem, 2);
-  if (mode === "working" && frame % 2) px(10, 3, PC.cream, 2);
-  // body
-  px(5, 6, bc, 12); px(4, 7, bc, 14, 4); px(3, 11, bc, 16, 2); px(4, 13, bc, 14); px(5, 14, sh, 12);
-  px(6, 15, bc, 3, 2); px(13, 15, bc, 3, 2);
-  if (breathe) px(4, 6, bc);
-  // sleeves / arms
-  if (mode === "done") { px(2, 9, bc, 1, 2); px(19, 9, bc, 1, 2); px(2, 8, bc); px(19, 8, bc); }
-  if (mode === "wave") { px(19, 9, bc, 1, 3); px(20, frame % 2 ? 8 : 9, bc); }
-  // sweater
-  if (mode === "sweater") {
-    px(3, 11, PC.sweater, 16, 2); px(4, 13, PC.sweater, 14);
-    for (let x = 3; x < 19; x += 2) px(x, 12, PC.cream);
-  }
-  // eyes
-  const L = 7 + pet.look, R = 13 + pet.look;
-  const blinking = now < pet.blinkAt + 140 && now >= pet.blinkAt;
-  const eyesFor = (x, left) => {
-    if (mode === "nap" || blinking) return [[x, 10], [x + 1, 10]];
-    if (err) return left ? [[x, 9], [x + 1, 10], [x + 1, 9]] : [[x + 1, 9], [x, 10], [x, 9]];
-    if (pet.hover || mode === "done" || mode === "music") return [[x, 10], [x + 1, 9], [x + 2, 10]];  // ^ ^
-    const e = [[x, 9], [x, 10], [x + 1, 10]]; px(x + 1, 9, PC.white);
-    if (["approval", "question"].includes(mode)) e.push([x, 11]);
-    if (mode === "working") { return [[x, 10], [x + 1, 10], [x, 9]]; }          // looking down at the keys
-    return e;
-  };
-  [...eyesFor(L, true), ...eyesFor(R, false)].forEach(([x, y]) => px(x, y, PC.eye));
-  if (mode === "music") { for (const y of [8, 9, 10]) { px(3, y, PC.eye); px(18, y, PC.eye); } px(4, 6, PC.eye); px(17, 6, PC.eye); px(3, 7, PC.eye); px(18, 7, PC.eye); }
-  // mouth
-  const talk = now < pet.overrideUntil ? frame % 2 : 0;
-  if (err) { px(10, 12, PC.eye, 2); px(9, 13, PC.eye); px(12, 13, PC.eye); }
-  else if (["approval", "question"].includes(mode) || talk) { px(10, 12, PC.eye, 2, 2); }
-  else if (mode === "nap" || mode === "working") px(10, 13, PC.eye, 2);
-  else { px(9, 12, PC.eye); px(12, 12, PC.eye); px(10, 13, PC.eye, 2); }
-  // props and effects
-  if (mode === "coffee") {
-    px(19, 11, PC.white, 2, 3); px(21, 12, PC.white);
-    px(frame % 2 ? 20 : 19, 9, PC.steam); px(frame % 2 ? 19 : 20, 10, PC.steam);
-  }
-  if (mode === "music") { const n = frame % 2; px(17 - n, 3 - n, PC.yel); px(18 - n, 2 - n, PC.yel); px(18 - n, 1 - n, PC.yel); px(16 + n, 5, PC.cream); }
-  if (mode === "nap") { const z = frame % 4; px(16, 5, PC.cream); if (z > 0) { px(17, 4, PC.cream, 2); px(18, 3, PC.cream); } if (z > 1) { px(18, 1, PC.cream, 3); px(19, 2, PC.cream); px(18, 3, PC.cream, 3); } }
-  if (mode === "working") {
-    c(4, 17, PC.gray, 14); c(3, 18, PC.dark, 16);
-    for (let i = 0; i < 3; i++) c(5 + ((frame * 3 + i * 5) % 12), 17, PC.cream);
-    for (let i = 0; i < 3; i++) if ((frame + i) % 4 !== 3) c(14 + i * 2, 3 + (i % 2), PC.cream);
-  }
-  if (["approval", "question"].includes(mode)) {
-    const col = mode === "approval" ? "#ff8a3d" : PC.yel;
-    if (mode === "approval") { px(19, 2, col, 1, 4); px(19, 7, col); }
-    else { px(18, 2, col, 3); px(20, 3, col); px(19, 4, col); px(19, 5, col); px(19, 7, col); }
-  }
-  if (err && frame % 2) px(15, 7, PC.glow);
-  if (mode === "done") for (const [x, y] of [[1, 5], [20, 5], [0, 9], [21, 10], [3, 2], [18, 1]]) if ((frame + x) % 3) c(x, y, (frame + y) % 2 ? PC.yel : PC.cream);
-  if (spin && frame % 2) pctx.restore();
-}
-
-let active = true;                                                                        // the page idles while the panel is hidden
-window.setActive = (on) => { active = on; };
 function petTick() {
   if (!active) return;
   const now = performance.now();
@@ -346,7 +274,7 @@ function petTick() {
   const n = pet.data.needs.length;
   if (n > pet.prevNeeds) pet.jumpUntil = now + 600;                                          // a new request: hop for attention
   pet.prevNeeds = n;
-  drawPet(now);
+  drawPet(pctx, petMode(now), now, pet);
 }
 setInterval(petTick, 90);
 
@@ -375,7 +303,7 @@ new ResizeObserver(() => post({type: "size", height: $("panel").offsetHeight})).
 const LIVE = !window.webkit && location.search.includes("live");     // Windows/Linux tray: same page in an app window
 if (LIVE) {
   const token = new URLSearchParams(location.search).get("t");
-  post = (msg) => { if (["clear", "doctor", "quit"].includes(msg.type)) fetch(`/act/${msg.type}?t=${token}`, {method: "POST"}); };
+  post = (msg) => { if (["clear", "doctor", "mute", "quit"].includes(msg.type)) fetch(`/act/${msg.type}?t=${token}`, {method: "POST"}); };
   const poll = () => fetch("/state").then((r) => r.json()).then(render).catch(() => {});
   poll(); setInterval(() => active && poll(), 1000);
   document.addEventListener("visibilitychange", () => { active = !document.hidden; if (active) window.opening(); });
