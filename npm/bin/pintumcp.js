@@ -118,6 +118,21 @@ function cmdInstall() {
     }
   }
 
+  // Alerts for OpenCode (plugin) and Claude Code (hooks) so replies notify without prompting the agent.
+  try {
+    const dir = path.join(os.homedir(), ".config", "opencode", "plugins");
+    if (fs.existsSync(path.dirname(dir))) {
+      fs.mkdirSync(dir, { recursive: true });
+      fs.copyFileSync(path.join(__dirname, "..", "opencode", "pintumcp.js"), path.join(dir, "pintumcp.js"));
+      console.log("  ✓ OpenCode alerts plugin installed");
+    }
+    const claude = path.join(os.homedir(), ".claude", "settings.json");
+    if (fs.existsSync(path.dirname(claude))) {
+      addHooks(claude, pythonPath, path.join(PYTHON_DIR, "hook.py"));
+      console.log("  ✓ Claude Code hooks installed");
+    }
+  } catch (e) { console.log(`  ✗ alerts setup: ${e.message}`); }
+
   testNotification();
 
   showPose("party");
@@ -177,6 +192,7 @@ function cmdUninstall() {
     }
   }
   try { removeHooks(path.join(os.homedir(), ".claude", "settings.json")); } catch {}
+  try { fs.rmSync(path.join(os.homedir(), ".config", "opencode", "plugins", "pintumcp.js"), { force: true }); } catch {}
   try { execSync("pkill -f python/tray.py", { stdio: "ignore" }); } catch {}
   fs.rmSync(VENV_DIR, { recursive: true, force: true });
   showPose("sad");

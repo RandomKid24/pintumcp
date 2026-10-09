@@ -38,6 +38,9 @@ def main() -> None:
         project = Path(payload.get("cwd") or os.getcwd()).name
         agent = "Claude " + str(payload.get("session_id") or "")[:4]
         status.update(result[0], result[1], project, agent.strip(), app=os.environ.get("__CFBundleIdentifier"))
+        if result[0] in ("done", "approval", "question"):
+            import events
+            events.deliver_event(result[0], result[1], 80, project, agent.strip())
 
 
 if __name__ == "__main__":
