@@ -74,17 +74,22 @@ def update(state: str, message: str = "", project: str | None = None,
         path = _path(project, agent)
         since = now
         changed = True
+        took = None  # how long the last piece of work took (set when "working" ends)
         try:
             old = json.loads(path.read_text(encoding="utf-8"))
             if old.get("state") == state:
                 since = old.get("since", now)
                 changed = False
+            if old.get("state") == "working" and state != "working":
+                took = now - old.get("since", now)
+            elif state != "working":
+                took = old.get("took")
             app = app or old.get("app")
         except (OSError, ValueError):
             pass
         entry = {"project": project, "agent": agent, "state": state,
                  "message": " ".join(str(message).split())[:200], "since": since,
-                 "updated": now, "app": app}
+                 "updated": now, "app": app, "took": took}
         tmp = path.with_suffix(f".{os.getpid()}.tmp")
         tmp.write_text(json.dumps(entry), encoding="utf-8")
         os.replace(tmp, path)  # atomic: the reader never sees half a file
@@ -174,6 +179,7 @@ def today_stats(now: float | None = None, hours: int = 12) -> dict:
         pass
     events.sort(key=lambda e: e["updated"])
     trend = [0] * hours
+    err_trend = [0] * hours
     done = errors = 0
     longest = 0.0
     started: dict[tuple, float] = {}
@@ -190,9 +196,12 @@ def today_stats(now: float | None = None, hours: int = 12) -> dict:
                 trend[hours - 1 - bucket] += 1
         elif e["state"] == "error":
             errors += 1
+            bucket = int((now - e["updated"]) // 3600)
+            if bucket < hours:
+                err_trend[hours - 1 - bucket] += 1
     for t in started.values():
         longest = max(longest, now - t)  # still running
-    return {"done": done, "errors": errors, "trend": trend, "longest": format_age(longest) if longest else "-"}
+    return {"done": done, "errors": errors, "trend": trend, "err_trend": err_trend, "longest": format_age(longest) if longest else "-"}
 
 
 # ---- mute, tray heartbeat and toast hand-off (small files, same no-daemon style as the agent rows)

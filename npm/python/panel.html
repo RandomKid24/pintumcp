@@ -52,6 +52,7 @@
   .pill { display: inline-block; font-size: 10.5px; font-weight: 600; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent);
           border-radius: 999px; padding: 3px 9px; }
   .time { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text); margin-top: 4px; }
+  .took { color: var(--muted); font-size: 11px; }
   .stuck { color: var(--question); font-size: 11.5px; }
   .empty { text-align: center; padding: 14px 12px 16px; color: var(--muted); font-size: 13px; }
   .empty img { width: 80px; image-rendering: pixelated; display: block; margin: 0 auto 8px; }
@@ -61,6 +62,12 @@
   .today .stat b { color: var(--text); font-size: 15px; }
   .bars { display: flex; align-items: flex-end; gap: 4px; height: 34px; margin-top: 8px; }
   .bars i { flex: 1; background: var(--teal); border-radius: 5px 5px 2px 2px; min-height: 4px; opacity: .9; }
+  .bars { position: relative; }
+  .bars i { cursor: default; transition: filter .12s, opacity .12s; }
+  .bars i:hover { opacity: 1; filter: brightness(1.2); }
+  .tip { position: absolute; bottom: calc(100% + 6px); transform: translateX(-50%); background: var(--card-2); border: 1px solid var(--line);
+         border-radius: 9px; padding: 5px 8px; font-size: 11px; line-height: 1.35; white-space: nowrap; pointer-events: none; display: none; z-index: 4; }
+  .tip b { color: var(--text); } .tip span { color: var(--muted); }
   .bars i.zero { background: var(--card-2); opacity: 1; }
   .axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; }
   footer { display: flex; justify-content: space-between; color: var(--muted); font-size: 10.5px; padding: 8px 6px 0; }
@@ -120,6 +127,12 @@ function clock(sec) {                       // 4:12 or 1:12:05
   const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
   return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
 }
+function span(sec) {                        // 4m 12s, 1h 12m
+  sec = Math.max(0, Math.round(sec));
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60);
+  return m < 60 ? `${m}m ${String(sec % 60).padStart(2, "0")}s` : `${Math.floor(m / 60)}h ${m % 60}m`;
+}
 function ago(sec) {
   sec = Math.floor(sec);
   if (sec < 45) return "just now";
@@ -163,18 +176,22 @@ function render(data) {
         <div class="right">
           <span class="pill">${LABEL[a.state] || a.state}</span>
           <div class="time">${a.state === "working"
-            ? `<span data-since="${data.now - a.in_state}">${clock(a.in_state)}</span>`
-            : `<span data-ago="${data.now - a.age}">${ago(a.age)}</span>`}</div>
+            ? `<span data-since="${data.now - a.in_state}">${clock(a.in_state)}</span> <span class="took">running</span>`
+            : `${a.took ? `<span>took ${span(a.took)}</span> <span class="took">·</span> ` : ""}<span class="took" data-ago="${data.now - a.age}">${ago(a.age)}</span>`}</div>
           ${a.stale ? `<div class="stuck">quiet, maybe stuck?</div>` : ""}
         </div>
       </div>`).join("");
   }
 
-  const t = data.today, peak = Math.max(1, ...t.trend);
-  $("today").innerHTML = `<div class="top"><h2>Today</h2>
-      <div class="stat"><b>${t.done}</b> done &nbsp;·&nbsp; <b style="color:${t.errors ? "var(--error)" : "inherit"}">${t.errors}</b> error${t.errors === 1 ? "" : "s"}</div></div>
-    <div class="bars">${t.trend.map((n) => `<i class="${n ? "" : "zero"}" style="height:${n ? Math.max(14, n / peak * 100) : 8}%" title="${n} done"></i>`).join("")}</div>
-    <div class="axis"><span>${t.trend.length}h ago</span><span>Longest run ${esc(t.longest)}</span><span>now</span></div>`;
+  if (!barsHover) {                          // keep the chart steady while the pointer is on it
+    const t = data.today, peak = Math.max(1, ...t.trend);
+    $("today").innerHTML = `<div class="top"><h2>Today</h2>
+        <div class="stat"><b>${t.done}</b> done &nbsp;·&nbsp; <b style="color:${t.errors ? "var(--error)" : "inherit"}">${t.errors}</b> error${t.errors === 1 ? "" : "s"}</div></div>
+      <div class="bars" id="bars">${t.trend.map((n, i) => `<i data-i="${i}" class="${n ? "" : "zero"}" style="height:${n ? Math.max(14, n / peak * 100) : 8}%"></i>`).join("")}<div class="tip" id="tip"></div></div>
+      <div class="axis"><span>${t.trend.length}h ago</span><span id="axis-mid">Longest run ${esc(t.longest)}</span><span>now</span></div>`;
+    $("bars").onmousemove = (e) => hoverBar(e, data);
+    $("bars").onmouseleave = () => hoverBar(null, data);
+  }
   $("headline").textContent = muted && !needs.length ? "Shhh, alerts are muted" : needs.length ? `${needs.length} agent${needs.length === 1 ? "" : "s"} need${needs.length === 1 ? "s" : ""} you`
     : working.length ? "Agents are working" : agents.length ? "All done" : "Nothing running";
   saying = {data, needs, working, pinned: saying?.pinned}; say(true);
@@ -189,6 +206,22 @@ setInterval(() => {                         // live timers without asking Python
 
 $("agents").addEventListener("click", (e) => { const r = e.target.closest(".row"); if (r) post({type: "focus", key: r.dataset.key}); });
 document.querySelector(".actions").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) post({type: b.dataset.act}); });
+
+let barsHover = false;
+function hoverBar(e, data) {
+  barsHover = !!(e && e.target.closest("i"));                // tooltip for the Today chart: hour range, finished and errors
+  const tip = $("tip"), bar = e && e.target.closest("i");
+  document.querySelectorAll("#bars i").forEach((b) => { b.style.outline = b === bar ? "1px solid rgba(255,255,255,.35)" : ""; });
+  if (!bar) { tip.style.display = "none"; $("axis-mid").textContent = `Longest run ${data.today.longest}`; return; }
+  const i = +bar.dataset.i, n = data.today.trend.length, t = data.today;
+  const fmt = (s) => new Date(s * 1000).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+  const end = data.now - (n - 1 - i) * 3600, errs = (t.err_trend || [])[i] || 0;
+  tip.innerHTML = `<b>${t.trend[i]} done</b>${errs ? ` <span>·</span> <b style="color:var(--error)">${errs} error${errs === 1 ? "" : "s"}</b>` : ""}<br><span>${fmt(end - 3600)} – ${fmt(end)}</span>`;
+  tip.style.display = "block";
+  const box = $("bars").getBoundingClientRect(), r = bar.getBoundingClientRect();
+  tip.style.left = Math.min(Math.max(r.left - box.left + r.width / 2, 60), box.width - 60) + "px";
+  $("axis-mid").textContent = `${fmt(end - 3600)} – ${fmt(end)}: ${t.trend[i]} done`;
+}
 
 // Pintu's one-liners: a pool built from everything we know right now, rotated every few seconds.
 let saying = null, sayTick = 0;
@@ -316,9 +349,9 @@ if (!window.webkit && !LIVE) {                      // browser preview with samp
     A("Web · Agent 2", "error", "Build failed: missing dependency 'lodash'", 410, 410),
     A("Web · Agent 1", "question", "Postgres or Mongo for the sessions table?", 160, 160),
     A("API · Agent 1", "working", "Refactoring the auth module", 252, 40),
-    A("Docs · Agent 1", "done", "47 tests pass. Ready to review.", 600, 600),
+    A("Docs · Agent 1", "done", "47 tests pass. Ready to review.", 600, 600, {took: 252}),
     A("Infra · Agent 1", "working", "Migrating the staging database", 1260, 780, {stale: true}),
-  ], today: {done: 12, errors: 2, trend: [0, 1, 0, 2, 1, 3, 0, 1, 2, 1, 0, 1], longest: "1h 12m"}});
+  ], today: {done: 12, errors: 2, trend: [0, 1, 0, 2, 1, 3, 0, 1, 2, 1, 0, 1], err_trend: [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0], longest: "1h 12m"}});
 }
 </script>
 </body>

@@ -70,7 +70,7 @@ def payload(items: list = None, now: float = None) -> dict:
     items = status.snapshot() if items is None else items
     now = time.time() if now is None else now
     agents = [{"key": agent_key(i), "name": status.describe(i)["name"], "state": i["state"],
-               "message": i["message"], "in_state": i["in_state"], "age": i["age"], "stale": i["stale"]}
+               "message": i["message"], "in_state": i["in_state"], "age": i["age"], "stale": i["stale"], "took": i.get("took")}
               for i in items]
     return {"now": now, "agents": agents, "today": status.today_stats(now), "muted_until": status.muted_until()}
 
