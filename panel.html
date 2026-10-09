@@ -21,8 +21,8 @@
   header h1 { font-size: 17px; font-weight: 700; letter-spacing: -.01em; flex: 1; }
   .chip { font-size: 11px; color: var(--muted); background: var(--card); border-radius: 999px; padding: 4px 10px; }
   .hero { display: flex; align-items: center; gap: 12px; padding: 10px; margin-bottom: 8px; border-radius: 18px; }
-  .tile { width: 54px; height: 54px; flex: none; display: grid; place-items: center; border-radius: 15px; background: var(--card-2); }
-  .tile img { width: 42px; height: 38px; image-rendering: pixelated; }
+  .tile { width: 92px; height: 84px; cursor: pointer; flex: none; display: grid; place-items: center; border-radius: 15px; background: var(--card-2); }
+  .tile canvas { width: 88px; height: 80px; image-rendering: pixelated; }
   .headline { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
   .actions { display: flex; justify-content: space-around; padding: 10px 0 2px; }
   .actions button { background: none; border: 0; color: var(--text); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer;
@@ -66,7 +66,8 @@
   footer { display: flex; justify-content: space-between; color: var(--muted); font-size: 10.5px; padding: 8px 6px 0; }
   @keyframes pop { from { opacity: 0; transform: translateY(-10px) scale(.94); } to { opacity: 1; transform: none; } }
   body.out .panel { animation: none; opacity: 0; transform: translateY(-8px) scale(.96); transition: opacity .15s ease, transform .15s ease; }
-  #herosub { transition: opacity .25s ease; }
+  #herosub { transition: opacity .25s ease; position: relative; background: var(--card-2); border-radius: 12px; padding: 6px 9px; margin-top: 6px; font-size: 12px; color: var(--text); white-space: normal; }
+  #herosub::before { content: ""; position: absolute; left: -5px; top: 10px; border: 5px solid transparent; border-left: 0; border-right-color: var(--card-2); }
   #herosub.fade { opacity: 0; }
 </style>
 </head>
@@ -78,7 +79,7 @@
   </header>
 
   <div class="card hero">
-    <div class="tile"><img id="logo" src="assets/pet/wave.gif" alt="Pintu"></div>
+    <div class="tile"><canvas id="pet" width="132" height="120"></canvas></div>
     <div class="who"><div class="headline" id="headline"></div><div class="sub" id="herosub"></div></div>
   </div>
 
@@ -132,7 +133,7 @@ function render(data) {
   const working = agents.filter((a) => a.state === "working");
 
   $("count").textContent = `${agents.length} agent${agents.length === 1 ? "" : "s"}`;
-  $("logo").src = `assets/pet/${needs.length ? needs[0].state : working.length ? "working" : agents.length ? "done" : "wave"}.gif`;
+  pet.data = {agents, needs, working};
 
   const urgent = needs.length ? needs[0].state : null;
   $("needs").style.setProperty("--c", urgent ? COLOR[urgent] : COLOR.done);
@@ -171,7 +172,7 @@ function render(data) {
     <div class="axis"><span>${t.trend.length}h ago</span><span>Longest run ${esc(t.longest)}</span><span>now</span></div>`;
   $("headline").textContent = needs.length ? `${needs.length} agent${needs.length === 1 ? "" : "s"} need${needs.length === 1 ? "s" : ""} you`
     : working.length ? "Agents are working" : agents.length ? "All done" : "Nothing running";
-  saying = {data, needs, working}; say(true);
+  saying = {data, needs, working, pinned: saying?.pinned}; say(true);
   $("updated").textContent = "updated just now";
 }
 
@@ -215,7 +216,7 @@ function pool({data, needs, working}) {
   return out.filter(Boolean);
 }
 function say(fresh) {
-  if (!saying) return;
+  if (!saying || performance.now() < (saying.pinned || 0)) return;
   const el = $("herosub"), lines = pool(saying);
   const line = fresh && lines.includes(el.dataset.line) ? el.dataset.line : lines[sayTick++ % lines.length];
   if (line === el.dataset.line) return;
@@ -230,6 +231,130 @@ window.opening = () => {
   const p = $("panel"); p.style.animation = "none"; void p.offsetWidth; p.style.animation = "";
 };
 window.closing = () => document.body.classList.add("out");
+
+
+// ---- Pintu, alive: a pixel character on a 22x20 grid that blinks, looks at the cursor, reacts and keeps busy.
+const pet = {data: {agents: [], needs: [], working: []}, look: 0, lookAt: 0, blinkAt: 0, hover: false, jumpUntil: 0, spinUntil: 0,
+             override: null, overrideUntil: 0, prevNeeds: 0, born: performance.now()};
+const PC = {body: "#48d6be", shade: "#28a096", eye: "#101634", white: "#fff", yel: "#ffb830", stem: "#96aac8", red: "#ff7878", redShade: "#d25a5a",
+            sweater: "#ff6b50", cream: "#ffe296", steam: "#bec8dc", gray: "#5a6272", dark: "#3a4150", glow: "#9ad8ff"};
+const IDLE = ["wave", "sweater", "coffee", "music", "nap"];
+const POKES = ["Boop!", "Hehe, that tickles.", "I'm working, I swear.", "Again! Again!", "Careful, I'm fragile.", "Five more minutes...", "You rang?", "Pet me gently."];
+const pctx = $("pet").getContext("2d"), S = 6;
+
+function petMode(now) {
+  const {agents, needs, working} = pet.data;
+  if (now < pet.overrideUntil && pet.override) return pet.override;
+  if (needs.length) return needs[0].state;                  // approval | question | error
+  if (working.length) return "working";
+  if (agents.some((a) => a.state === "done" && a.age < 90)) return "done";
+  return IDLE[Math.floor((now - pet.born) / 9000) % IDLE.length];
+}
+
+function drawPet(now) {
+  const mode = petMode(now), t = now / 1000, frame = Math.floor(now / 350);
+  const err = mode === "error", c = (x, y, col, w = 1, h = 1) => { pctx.fillStyle = col; pctx.fillRect(x * S, y * S, w * S, h * S); };
+  let dx = 0, dy = 0;
+  if (now < pet.jumpUntil) dy = -Math.round(Math.sin((1 - (pet.jumpUntil - now) / 600) * Math.PI) * 3);
+  else if (["approval", "question"].includes(mode)) dy = frame % 3 === 0 ? -2 : 0;
+  if (err) dx = frame % 2 ? 1 : -1;
+  const spin = now < pet.spinUntil;
+  pctx.clearRect(0, 0, 132, 120);
+  if (spin && frame % 2) { pctx.save(); pctx.translate(132, 0); pctx.scale(-1, 1); }
+
+  // shadow
+  pctx.fillStyle = "rgba(255,255,255,.07)"; pctx.fillRect((6 + (dy < -1 ? 1 : 0)) * S, 17 * S, (10 - (dy < -1 ? 2 : 0)) * S, S);
+  const bc = err ? PC.red : PC.body, sh = err ? PC.redShade : PC.shade;
+  const X = (x) => x + dx, Y = (y) => y + dy;
+  const px = (x, y, col, w = 1, h = 1) => c(X(x), Y(y), col, w, h);
+  const breathe = Math.floor(now / 700) % 2;                                   // chest rises
+  // antenna
+  px(10, 3, PC.yel, 2); px(9, 4, PC.yel, 4); px(10, 5, PC.stem, 2);
+  if (mode === "working" && frame % 2) px(10, 3, PC.cream, 2);
+  // body
+  px(5, 6, bc, 12); px(4, 7, bc, 14, 4); px(3, 11, bc, 16, 2); px(4, 13, bc, 14); px(5, 14, sh, 12);
+  px(6, 15, bc, 3, 2); px(13, 15, bc, 3, 2);
+  if (breathe) px(4, 6, bc);
+  // sleeves / arms
+  if (mode === "done") { px(2, 9, bc, 1, 2); px(19, 9, bc, 1, 2); px(2, 8, bc); px(19, 8, bc); }
+  if (mode === "wave") { px(19, 9, bc, 1, 3); px(20, frame % 2 ? 8 : 9, bc); }
+  // sweater
+  if (mode === "sweater") {
+    px(3, 11, PC.sweater, 16, 2); px(4, 13, PC.sweater, 14);
+    for (let x = 3; x < 19; x += 2) px(x, 12, PC.cream);
+  }
+  // eyes
+  const L = 7 + pet.look, R = 13 + pet.look;
+  const blinking = now < pet.blinkAt + 140 && now >= pet.blinkAt;
+  const eyesFor = (x, left) => {
+    if (mode === "nap" || blinking) return [[x, 10], [x + 1, 10]];
+    if (err) return left ? [[x, 9], [x + 1, 10], [x + 1, 9]] : [[x + 1, 9], [x, 10], [x, 9]];
+    if (pet.hover || mode === "done" || mode === "music") return [[x, 10], [x + 1, 9], [x + 2, 10]];  // ^ ^
+    const e = [[x, 9], [x, 10], [x + 1, 10]]; px(x + 1, 9, PC.white);
+    if (["approval", "question"].includes(mode)) e.push([x, 11]);
+    if (mode === "working") { return [[x, 10], [x + 1, 10], [x, 9]]; }          // looking down at the keys
+    return e;
+  };
+  [...eyesFor(L, true), ...eyesFor(R, false)].forEach(([x, y]) => px(x, y, PC.eye));
+  if (mode === "music") { for (const y of [8, 9, 10]) { px(3, y, PC.eye); px(18, y, PC.eye); } px(4, 6, PC.eye); px(17, 6, PC.eye); px(3, 7, PC.eye); px(18, 7, PC.eye); }
+  // mouth
+  const talk = now < pet.overrideUntil ? frame % 2 : 0;
+  if (err) { px(10, 12, PC.eye, 2); px(9, 13, PC.eye); px(12, 13, PC.eye); }
+  else if (["approval", "question"].includes(mode) || talk) { px(10, 12, PC.eye, 2, 2); }
+  else if (mode === "nap" || mode === "working") px(10, 13, PC.eye, 2);
+  else { px(9, 12, PC.eye); px(12, 12, PC.eye); px(10, 13, PC.eye, 2); }
+  // props and effects
+  if (mode === "coffee") {
+    px(19, 11, PC.white, 2, 3); px(21, 12, PC.white);
+    px(frame % 2 ? 20 : 19, 9, PC.steam); px(frame % 2 ? 19 : 20, 10, PC.steam);
+  }
+  if (mode === "music") { const n = frame % 2; px(17 - n, 3 - n, PC.yel); px(18 - n, 2 - n, PC.yel); px(18 - n, 1 - n, PC.yel); px(16 + n, 5, PC.cream); }
+  if (mode === "nap") { const z = frame % 4; px(16, 5, PC.cream); if (z > 0) { px(17, 4, PC.cream, 2); px(18, 3, PC.cream); } if (z > 1) { px(18, 1, PC.cream, 3); px(19, 2, PC.cream); px(18, 3, PC.cream, 3); } }
+  if (mode === "working") {
+    c(4, 17, PC.gray, 14); c(3, 18, PC.dark, 16);
+    for (let i = 0; i < 3; i++) c(5 + ((frame * 3 + i * 5) % 12), 17, PC.cream);
+    for (let i = 0; i < 3; i++) if ((frame + i) % 4 !== 3) c(14 + i * 2, 3 + (i % 2), PC.cream);
+  }
+  if (["approval", "question"].includes(mode)) {
+    const col = mode === "approval" ? "#ff8a3d" : PC.yel;
+    if (mode === "approval") { px(19, 2, col, 1, 4); px(19, 7, col); }
+    else { px(18, 2, col, 3); px(20, 3, col); px(19, 4, col); px(19, 5, col); px(19, 7, col); }
+  }
+  if (err && frame % 2) px(15, 7, PC.glow);
+  if (mode === "done") for (const [x, y] of [[1, 5], [20, 5], [0, 9], [21, 10], [3, 2], [18, 1]]) if ((frame + x) % 3) c(x, y, (frame + y) % 2 ? PC.yel : PC.cream);
+  if (spin && frame % 2) pctx.restore();
+}
+
+function petTick() {
+  const now = performance.now();
+  if (now > pet.blinkAt + 140 && Math.random() < 0.02) pet.blinkAt = now;                    // blink now and then
+  if (now > pet.lookAt && !pet.cursor) { pet.look = pick([-1, 0, 0, 1]); pet.lookAt = now + 1500 + Math.random() * 2500; }
+  const n = pet.data.needs.length;
+  if (n > pet.prevNeeds) pet.jumpUntil = now + 600;                                          // a new request: hop for attention
+  pet.prevNeeds = n;
+  drawPet(now);
+}
+setInterval(petTick, 90);
+
+const tile = document.querySelector(".tile");
+tile.addEventListener("mouseenter", () => { pet.hover = true; });
+tile.addEventListener("mouseleave", () => { pet.hover = false; });
+let pokes = 0, pokeReset;
+tile.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const now = performance.now(); pokes++; clearTimeout(pokeReset); pokeReset = setTimeout(() => { pokes = 0; }, 900);
+  pet.jumpUntil = now + 600;
+  if (pokes >= 4) { pet.spinUntil = now + 1400; pet.override = "done"; pet.overrideUntil = now + 2200; say.pin("Wheee!", 2200); pokes = 0; }
+  else say.pin(pick(POKES), 2600);
+});
+document.addEventListener("mousemove", (e) => {                                             // eyes follow the cursor
+  const r = tile.getBoundingClientRect(), x = e.clientX - (r.left + r.width / 2);
+  pet.cursor = true; pet.look = x < -45 ? -1 : x > 45 ? 1 : 0; pet.lookAt = performance.now() + 2500;
+});
+say.pin = (text, ms) => {
+  const el = $("herosub"); saying.pinned = performance.now() + ms; el.textContent = text; el.dataset.line = text;
+  pet.overrideUntil = Math.max(pet.overrideUntil, performance.now() + ms); pet.override = pet.override || "wave";
+};
 
 window.render = render;
 new ResizeObserver(() => post({type: "size", height: $("panel").offsetHeight})).observe($("panel"));
