@@ -6,6 +6,7 @@ writes (see status.py); nothing is sent anywhere.
 """
 
 import json
+import random
 import subprocess
 import time
 from pathlib import Path
@@ -35,6 +36,19 @@ def frame_for(state: str, n: int) -> str:
         name = IDLE_ACTIVITIES[(n // TICKS_PER_ACTIVITY) % len(IDLE_ACTIVITIES)]
     frames = frames_for(name) or frames_for("empty")
     return frames[n % len(frames)]
+
+
+# Short lines Pintu mutters next to his icon (kept tiny: menu-bar space is precious).
+QUIPS = {
+    "working": ["on it", "typing...", "brb, coding", "beep boop", "cooking", "no peeking", "in the zone", "hold my coffee", "compiling vibes", "big brain time"],
+    "approval": ["psst!", "ahem...", "need a yes", "your call", "pls approve", "pretty please?"],
+    "question": ["quick q!", "thoughts?", "help me out", "hello??", "got a sec?"],
+    "error": ["oh no", "it's fine", "ow.", "whoopsie", "not my fault", "send snacks"],
+    "done": ["ta-da!", "nailed it", "done & dusted", "too easy", "gg", "boom"],
+    "empty": ["zzz", "vibing", "so quiet", "wake me", "any work?", "snack time?", "la la la", "*knits*"],
+    "idle": ["zzz", "chillin", "all good", "still here", "waiting...", "*yawn*"],
+}
+QUIP_SECONDS = 5
 
 
 def bar_state(items: list) -> tuple:
@@ -78,6 +92,8 @@ def main() -> None:
             self.last_icon = None
             self.shown_at = 0.0
             self.hiding = False
+            self.images, self.shown, self.title, self.badge = {}, None, None, ""
+            self.quip, self.quip_until, self.quip_next = "", 0.0, 0.0
             bar = NSStatusBar.systemStatusBar()
             self.item = bar.statusItemWithLength_(NSVariableStatusItemLength)
             self.item.button().setTarget_(self)
@@ -112,11 +128,33 @@ def main() -> None:
             NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(0.4, self, "animate:", None, True)
             self.tick_(None)
 
+        @objc.python_method
+        def image(self, path):
+            if path not in self.images:  # load each frame once, not every 0.4s
+                img = NSImage.alloc().initWithContentsOfFile_(path)
+                img.setSize_(SIZE)
+                self.images[path] = img
+            return self.images[path]
+
+        @objc.python_method
+        def set_title(self):
+            now = time.time()
+            if now >= self.quip_next:
+                self.quip, self.quip_until = random.choice(QUIPS.get(self.state, QUIPS["idle"])), now + QUIP_SECONDS
+                self.quip_next = now + random.uniform(20, 35)
+            quip = self.quip if now < self.quip_until else ""
+            title = " ".join(x for x in (self.badge, quip) if x)
+            if title != self.title:
+                self.title = title
+                self.item.button().setTitle_(" " + title if title else "")
+
         def animate_(self, _timer):
             self.frame += 1
-            image = NSImage.alloc().initWithContentsOfFile_(frame_for(self.state, self.frame))
-            image.setSize_(SIZE)
-            self.item.button().setImage_(image)
+            path = frame_for(self.state, self.frame)
+            if path != self.shown:
+                self.shown = path
+                self.item.button().setImage_(self.image(path))
+            self.set_title()
 
         # ---- panel
         def toggle_(self, _sender):
@@ -146,6 +184,7 @@ def main() -> None:
             if self.hiding:
                 self.hiding = False
                 self.win.orderOut_(None)
+                self.web.evaluateJavaScript_completionHandler_("window.setActive && window.setActive(false)", None)
 
         @objc.python_method
         def resize(self, height):
@@ -165,9 +204,11 @@ def main() -> None:
             self.items = status.snapshot()
             state, badge = bar_state(self.items)
             if (state, badge) != self.last_icon:
+                changed = state != self.state
                 self.last_icon = (state, badge)
-                self.state = state
-                self.item.button().setTitle_(" " + badge if badge else "")
+                self.state, self.badge = state, badge
+                if changed:
+                    self.quip_next = 0.0  # say something about the new mood right away
                 self.animate_(None)
             if self.win.isVisible():
                 self.push()

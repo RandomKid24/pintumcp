@@ -177,7 +177,7 @@ function render(data) {
 }
 
 setInterval(() => {                         // live timers without asking Python every second
-  if (!current) return;
+  if (!current || !active) return;
   document.querySelectorAll("[data-since]").forEach((el) => { el.textContent = clock(now() - +el.dataset.since); });
   document.querySelectorAll("[data-ago]").forEach((el) => { el.textContent = ago(now() - +el.dataset.ago); });
 }, 1000);
@@ -212,7 +212,17 @@ function pool({data, needs, working}) {
   if (!data.agents.length) out.push("Nothing running. Just vibing.", "Wake me when an agent needs you.", "Zzz... or knitting. Hard to tell.");
   if (!needs.length) out.push(h < 5 ? "Late night coding? Hydrate." : h < 12 ? "Good morning. Ready when you are."
     : h < 17 ? "Afternoon. Snack break soon?" : h < 22 ? "Evening session. I'll keep watch." : "Late night coding? Hydrate.");
-  out.push("I'll ping you the second something needs you.", "Click an agent to jump back to it.");
+  out.push("I'll ping you the second something needs you.", "Click an agent to jump back to it.", "Psst, poke me. I dare you.",
+    "I have no hands but I'm very supportive.", "Fun fact: I run on pixels and optimism.", "Still here. Still teal.",
+    "Don't mind me, just supervising.", "If I had pockets, I'd hold your tickets.", "Tip: drink water. I can't, I'm pixels.",
+    "I've never missed a notification. Not once.", "Think of me as a very small, very loyal pager.");
+  if (working.length) out.push("Somewhere a build is judging itself.", "Agents don't take coffee breaks. I'll take it for them.",
+    "If it compiles, it ships. If it ships, it breaks. Circle of life.", "They said 'quick fix'. I've heard that before.");
+  if (needs.some((a) => a.state === "error")) out.push("Errors are just spicy feedback.", "Have you tried turning it off and on again? Kidding. Maybe.");
+  if (needs.some((a) => a.state === "approval")) out.push("One click of your finger, one giant leap for the agent.", "Hovering over 'approve' is allowed. Pressing it is encouraged.");
+  if (t.done >= 3) out.push("Look at you, shipping things.", "Quietly impressed.");
+  if (h >= 12 && h < 14) out.push("Lunch? The agents will wait. Probably.");
+  if (h >= 22 || h < 5) out.push("Go to sleep. The bugs will still be there tomorrow.", "It's late. I'm judging, lovingly.");
   return out.filter(Boolean);
 }
 function say(fresh) {
@@ -223,10 +233,11 @@ function say(fresh) {
   el.classList.add("fade");
   setTimeout(() => { el.textContent = line; el.dataset.line = line; el.classList.remove("fade"); }, fresh ? 0 : 250);
 }
-setInterval(() => say(false), 7000);
+setInterval(() => active && say(false), 7000);
 
 // open/close animation, driven from the menu-bar app
 window.opening = () => {
+  active = true;
   document.body.classList.remove("out");
   const p = $("panel"); p.style.animation = "none"; void p.offsetWidth; p.style.animation = "";
 };
@@ -325,7 +336,10 @@ function drawPet(now) {
   if (spin && frame % 2) pctx.restore();
 }
 
+let active = true;                                                                        // the page idles while the panel is hidden
+window.setActive = (on) => { active = on; };
 function petTick() {
+  if (!active) return;
   const now = performance.now();
   if (now > pet.blinkAt + 140 && Math.random() < 0.02) pet.blinkAt = now;                    // blink now and then
   if (now > pet.lookAt && !pet.cursor) { pet.look = pick([-1, 0, 0, 1]); pet.lookAt = now + 1500 + Math.random() * 2500; }
