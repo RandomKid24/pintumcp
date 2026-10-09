@@ -15,55 +15,59 @@
   html, body { background: transparent; }
   body { font: 14px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; color: var(--text);
          -webkit-font-smoothing: antialiased; user-select: none; cursor: default; }
-  .panel { width: 520px; margin: 0 auto; background: var(--bg); border-radius: 28px; padding: 18px 18px 14px;
+  .panel { width: 380px; margin: 0 auto; background: var(--bg); border-radius: 22px; padding: 12px 12px 10px; transform-origin: 50% 0; animation: pop .24s cubic-bezier(.2,.9,.3,1.15) both;
            border: 1px solid var(--line); }
-  header { display: flex; align-items: center; gap: 10px; padding: 2px 6px 14px; }
-  header h1 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; flex: 1; }
-  .chip { font-size: 12px; color: var(--muted); background: var(--card); border-radius: 999px; padding: 4px 10px; }
-  .hero { display: flex; align-items: center; gap: 16px; padding: 14px; margin-bottom: 12px; border-radius: 26px; }
-  .tile { width: 72px; height: 72px; flex: none; display: grid; place-items: center; border-radius: 20px; background: var(--card-2); }
-  .tile img { width: 56px; height: 50px; image-rendering: pixelated; }
-  .headline { font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
-  .actions { display: flex; justify-content: space-around; padding: 14px 0 4px; }
-  .actions button { background: none; border: 0; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-                    display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .actions span { width: 52px; height: 52px; border-radius: 50%; background: var(--card); display: grid; place-items: center; }
+  header { display: flex; align-items: center; gap: 10px; padding: 0 4px 10px; }
+  header h1 { font-size: 17px; font-weight: 700; letter-spacing: -.01em; flex: 1; }
+  .chip { font-size: 11px; color: var(--muted); background: var(--card); border-radius: 999px; padding: 4px 10px; }
+  .hero { display: flex; align-items: center; gap: 12px; padding: 10px; margin-bottom: 8px; border-radius: 18px; }
+  .tile { width: 54px; height: 54px; flex: none; display: grid; place-items: center; border-radius: 15px; background: var(--card-2); }
+  .tile img { width: 42px; height: 38px; image-rendering: pixelated; }
+  .headline { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+  .actions { display: flex; justify-content: space-around; padding: 10px 0 2px; }
+  .actions button { background: none; border: 0; color: var(--text); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer;
+                    display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .actions span { width: 40px; height: 40px; border-radius: 50%; background: var(--card); display: grid; place-items: center; }
   .actions button:hover span { background: var(--card-2); }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-  .card { background: var(--card); border-radius: 22px; padding: 16px 16px 14px; border: 1px solid var(--line); }
-  .card h2 { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 8px; }
+  .card { background: var(--card); border-radius: 16px; padding: 10px 12px; border: 1px solid var(--line); }
+  .card h2 { font-size: 11.5px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 7px; }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--muted)); box-shadow: 0 0 10px var(--c, transparent); }
-  .big { font-size: 40px; font-weight: 700; letter-spacing: -.02em; margin: 8px 0 2px; color: var(--c, var(--text)); }
-  .big small { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 6px; letter-spacing: 0; }
-  .sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .agents { padding: 6px 8px; margin-bottom: 12px; max-height: 330px; overflow-y: auto; scrollbar-width: none; }
+  .big { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin: 4px 0 1px; color: var(--c, var(--text)); }
+  .big small { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+  .sub { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .agents { padding: 4px 6px; margin-bottom: 8px; max-height: 190px; overflow-y: auto; scrollbar-width: none; }
   .agents::-webkit-scrollbar { display: none; }
-  .agents h2 { padding: 10px 8px 6px; }
-  .row { display: flex; align-items: center; gap: 12px; padding: 9px 8px; border-radius: 16px; cursor: pointer; }
+  .agents h2 { padding: 6px 6px 4px; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 12px; cursor: pointer; }
   .row:hover { background: rgba(255,255,255,.05); }
   .row + .row { border-top: 1px solid var(--line); }
-  .face { width: 46px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 14px;
+  .face { width: 36px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 10px;
           background: color-mix(in srgb, var(--c) 14%, transparent); }
-  .face img { width: 40px; height: 36px; image-rendering: pixelated; }
+  .face img { width: 30px; height: 27px; image-rendering: pixelated; }
   .who { flex: 1; min-width: 0; }
-  .name { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .msg { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .msg { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
   .right { text-align: right; flex: none; }
-  .pill { display: inline-block; font-size: 11.5px; font-weight: 600; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent);
+  .pill { display: inline-block; font-size: 10.5px; font-weight: 600; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent);
           border-radius: 999px; padding: 3px 9px; }
-  .time { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--text); margin-top: 4px; }
+  .time { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text); margin-top: 4px; }
   .stuck { color: var(--question); font-size: 11.5px; }
-  .empty { text-align: center; padding: 22px 20px 26px; color: var(--muted); font-size: 13px; }
+  .empty { text-align: center; padding: 14px 12px 16px; color: var(--muted); font-size: 13px; }
   .empty img { width: 80px; image-rendering: pixelated; display: block; margin: 0 auto 8px; }
   .empty code { background: var(--card-2); border-radius: 6px; padding: 1px 6px; color: var(--text); }
   .today .top { display: flex; align-items: baseline; justify-content: space-between; }
   .today .stat { font-size: 13px; color: var(--muted); }
   .today .stat b { color: var(--text); font-size: 15px; }
-  .bars { display: flex; align-items: flex-end; gap: 6px; height: 54px; margin-top: 12px; }
+  .bars { display: flex; align-items: flex-end; gap: 4px; height: 34px; margin-top: 8px; }
   .bars i { flex: 1; background: var(--teal); border-radius: 5px 5px 2px 2px; min-height: 4px; opacity: .9; }
   .bars i.zero { background: var(--card-2); opacity: 1; }
-  .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; }
-  footer { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px; padding: 12px 8px 0; }
+  .axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; }
+  footer { display: flex; justify-content: space-between; color: var(--muted); font-size: 10.5px; padding: 8px 6px 0; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-10px) scale(.94); } to { opacity: 1; transform: none; } }
+  body.out .panel { animation: none; opacity: 0; transform: translateY(-8px) scale(.96); transition: opacity .15s ease, transform .15s ease; }
+  #herosub { transition: opacity .25s ease; }
+  #herosub.fade { opacity: 0; }
 </style>
 </head>
 <body>
@@ -167,8 +171,7 @@ function render(data) {
     <div class="axis"><span>${t.trend.length}h ago</span><span>Longest run ${esc(t.longest)}</span><span>now</span></div>`;
   $("headline").textContent = needs.length ? `${needs.length} agent${needs.length === 1 ? "" : "s"} need${needs.length === 1 ? "s" : ""} you`
     : working.length ? "Agents are working" : agents.length ? "All done" : "Nothing running";
-  $("herosub").textContent = needs.length ? needs[0].message || LABEL[needs[0].state]
-    : working.length ? `${working.length} running right now` : "Your agents' status appears here";
+  saying = {data, needs, working}; say(true);
   $("updated").textContent = "updated just now";
 }
 
@@ -180,6 +183,53 @@ setInterval(() => {                         // live timers without asking Python
 
 $("agents").addEventListener("click", (e) => { const r = e.target.closest(".row"); if (r) post({type: "focus", key: r.dataset.key}); });
 document.querySelector(".actions").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) post({type: b.dataset.act}); });
+
+// Pintu's one-liners: a pool built from everything we know right now, rotated every few seconds.
+let saying = null, sayTick = 0;
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+function pool({data, needs, working}) {
+  const t = data.today, h = new Date().getHours(), n = (k, w) => `${k} ${w}${k === 1 ? "" : "s"}`;
+  const out = [];
+  needs.forEach((a) => {
+    if (a.state === "approval") out.push(`${a.name} is waiting for your OK.`, `A tiny "yes" would unblock ${a.name}.`, a.message);
+    if (a.state === "question") out.push(`${a.name} has a question for you.`, `Quick answer needed on ${a.name}.`, a.message);
+    if (a.state === "error") out.push(`${a.name} hit a snag. Want to peek?`, `Something broke in ${a.name}. Probably not your fault.`, a.message);
+  });
+  if (needs.length > 1) out.push(`${needs.length} agents are tapping their feet.`, "Lots of hands up. Take them one at a time.");
+  if (working.length) {
+    out.push(`${n(working.length, "agent")} hard at work.`, "Busy bees. I'll watch.", "Typing noises, imagine them.");
+    const slow = working.reduce((m, a) => (a.in_state > m.in_state ? a : m), working[0]);
+    if (slow.in_state > 1200) out.push(`${slow.name} has been at it for ${Math.floor(slow.in_state / 60)} min. Long one.`);
+    if (working.some((a) => a.stale)) out.push("Someone went quiet. Maybe check on them?");
+  }
+  if (t.done) {
+    out.push(`${t.done} done today.`, t.errors ? `${n(t.errors, "error")} today. We'll get them.` : "No errors today. Clean.");
+    if (t.done >= 5) out.push("You're on a roll.");
+    if (t.done >= 10) out.push("Double digits today!");
+  }
+  data.agents.filter((a) => a.state === "done").slice(0, 2).forEach((a) => out.push(`${a.name} finished. Nicely done.`));
+  if (!data.agents.length) out.push("Nothing running. Just vibing.", "Wake me when an agent needs you.", "Zzz... or knitting. Hard to tell.");
+  if (!needs.length) out.push(h < 5 ? "Late night coding? Hydrate." : h < 12 ? "Good morning. Ready when you are."
+    : h < 17 ? "Afternoon. Snack break soon?" : h < 22 ? "Evening session. I'll keep watch." : "Late night coding? Hydrate.");
+  out.push("I'll ping you the second something needs you.", "Click an agent to jump back to it.");
+  return out.filter(Boolean);
+}
+function say(fresh) {
+  if (!saying) return;
+  const el = $("herosub"), lines = pool(saying);
+  const line = fresh && lines.includes(el.dataset.line) ? el.dataset.line : lines[sayTick++ % lines.length];
+  if (line === el.dataset.line) return;
+  el.classList.add("fade");
+  setTimeout(() => { el.textContent = line; el.dataset.line = line; el.classList.remove("fade"); }, fresh ? 0 : 250);
+}
+setInterval(() => say(false), 7000);
+
+// open/close animation, driven from the menu-bar app
+window.opening = () => {
+  document.body.classList.remove("out");
+  const p = $("panel"); p.style.animation = "none"; void p.offsetWidth; p.style.animation = "";
+};
+window.closing = () => document.body.classList.add("out");
 
 window.render = render;
 new ResizeObserver(() => post({type: "size", height: $("panel").offsetHeight})).observe($("panel"));

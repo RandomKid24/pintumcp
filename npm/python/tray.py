@@ -16,7 +16,7 @@ HERE = Path(__file__).parent
 ICONS = HERE / "assets" / "menubar"
 SIZE = (18, 16)  # points; the PNGs are exactly 2x
 NEEDS_YOU = ("approval", "error", "question")
-WIDTH = 520
+WIDTH = 380
 
 
 def frames_for(name: str) -> list:
@@ -77,6 +77,7 @@ def main() -> None:
             self.height = 600
             self.last_icon = None
             self.shown_at = 0.0
+            self.hiding = False
             bar = NSStatusBar.systemStatusBar()
             self.item = bar.statusItemWithLength_(NSVariableStatusItemLength)
             self.item.button().setTarget_(self)
@@ -127,13 +128,24 @@ def main() -> None:
             screen = NSScreen.mainScreen().frame()
             x = min(max(frame.origin.x + frame.size.width / 2 - WIDTH / 2, 8), screen.size.width - WIDTH - 8)
             self.win.setFrame_display_(NSMakeRect(x, frame.origin.y - self.height - 6, WIDTH, self.height), True)
+            self.hiding = False
             self.shown_at = time.time()
+            self.web.evaluateJavaScript_completionHandler_("window.opening && window.opening()", None)
             self.push()
             self.win.makeKeyAndOrderFront_(None)
 
         @objc.python_method
         def hide(self):
-            self.win.orderOut_(None)
+            if not self.win.isVisible() or self.hiding:
+                return
+            self.hiding = True
+            self.web.evaluateJavaScript_completionHandler_("window.closing && window.closing()", None)
+            NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(0.16, self, "finish:", None, False)
+
+        def finish_(self, _timer):
+            if self.hiding:
+                self.hiding = False
+                self.win.orderOut_(None)
 
         @objc.python_method
         def resize(self, height):
