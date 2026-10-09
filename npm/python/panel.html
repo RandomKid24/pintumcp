@@ -18,18 +18,17 @@
   .panel { width: 520px; margin: 0 auto; background: var(--bg); border-radius: 28px; padding: 18px 18px 14px;
            border: 1px solid var(--line); }
   header { display: flex; align-items: center; gap: 10px; padding: 2px 6px 14px; }
-  header img { width: 40px; height: 36px; image-rendering: pixelated; }
   header h1 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; flex: 1; }
   .chip { font-size: 12px; color: var(--muted); background: var(--card); border-radius: 999px; padding: 4px 10px; }
-  .menu-btn { background: var(--card); border: 0; color: var(--text); width: 30px; height: 30px; border-radius: 50%;
-              font-size: 16px; line-height: 1; cursor: pointer; position: relative; }
-  .menu-btn:hover { background: var(--card-2); }
-  .dropdown { position: absolute; right: 24px; top: 60px; background: var(--card-2); border: 1px solid var(--line);
-              border-radius: 14px; padding: 6px; display: none; z-index: 5; min-width: 170px; box-shadow: 0 10px 30px rgba(0,0,0,.6); }
-  .dropdown.open { display: block; }
-  .dropdown button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--text);
-                     padding: 9px 12px; border-radius: 9px; font-size: 14px; cursor: pointer; }
-  .dropdown button:hover { background: rgba(255,255,255,.08); }
+  .hero { display: flex; align-items: center; gap: 16px; padding: 14px; margin-bottom: 12px; border-radius: 26px; }
+  .tile { width: 72px; height: 72px; flex: none; display: grid; place-items: center; border-radius: 20px; background: var(--card-2); }
+  .tile img { width: 56px; height: 50px; image-rendering: pixelated; }
+  .headline { font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+  .actions { display: flex; justify-content: space-around; padding: 14px 0 4px; }
+  .actions button { background: none; border: 0; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+                    display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .actions span { width: 52px; height: 52px; border-radius: 50%; background: var(--card); display: grid; place-items: center; }
+  .actions button:hover span { background: var(--card-2); }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
   .card { background: var(--card); border-radius: 22px; padding: 16px 16px 14px; border: 1px solid var(--line); }
   .card h2 { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 7px; }
@@ -70,15 +69,13 @@
 <body>
 <div class="panel" id="panel">
   <header>
-    <img id="logo" src="assets/pet/wave.gif" alt="Pintu">
-    <h1>AI Agents</h1>
+    <h1>Pintu</h1>
     <span class="chip" id="count">0 agents</span>
-    <button class="menu-btn" id="menu-btn" aria-label="Menu">&middot;&middot;&middot;</button>
   </header>
-  <div class="dropdown" id="dropdown">
-    <button data-act="clear">Clear finished</button>
-    <button data-act="doctor">Send test alert</button>
-    <button data-act="quit">Quit pintumcp</button>
+
+  <div class="card hero">
+    <div class="tile"><img id="logo" src="assets/pet/wave.gif" alt="Pintu"></div>
+    <div class="who"><div class="headline" id="headline"></div><div class="sub" id="herosub"></div></div>
   </div>
 
   <div class="grid">
@@ -89,6 +86,12 @@
   <div class="card agents" id="agents"></div>
 
   <div class="card today" id="today"></div>
+
+  <div class="actions">
+    <button data-act="clear"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Clear done</button>
+    <button data-act="doctor"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0"/></svg></span>Test alert</button>
+    <button data-act="quit"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10M5.6 6.6a9 9 0 1 0 12.8 0"/></svg></span>Quit</button>
+  </div>
 
   <footer><span>pintumcp</span><span id="updated"></span></footer>
 </div>
@@ -162,6 +165,10 @@ function render(data) {
       <div class="stat"><b>${t.done}</b> done &nbsp;·&nbsp; <b style="color:${t.errors ? "var(--error)" : "inherit"}">${t.errors}</b> error${t.errors === 1 ? "" : "s"}</div></div>
     <div class="bars">${t.trend.map((n) => `<i class="${n ? "" : "zero"}" style="height:${n ? Math.max(14, n / peak * 100) : 8}%" title="${n} done"></i>`).join("")}</div>
     <div class="axis"><span>${t.trend.length}h ago</span><span>Longest run ${esc(t.longest)}</span><span>now</span></div>`;
+  $("headline").textContent = needs.length ? `${needs.length} agent${needs.length === 1 ? "" : "s"} need${needs.length === 1 ? "s" : ""} you`
+    : working.length ? "Agents are working" : agents.length ? "All done" : "Nothing running";
+  $("herosub").textContent = needs.length ? needs[0].message || LABEL[needs[0].state]
+    : working.length ? `${working.length} running right now` : "Your agents' status appears here";
   $("updated").textContent = "updated just now";
 }
 
@@ -172,9 +179,7 @@ setInterval(() => {                         // live timers without asking Python
 }, 1000);
 
 $("agents").addEventListener("click", (e) => { const r = e.target.closest(".row"); if (r) post({type: "focus", key: r.dataset.key}); });
-$("menu-btn").addEventListener("click", (e) => { e.stopPropagation(); $("dropdown").classList.toggle("open"); });
-document.addEventListener("click", () => $("dropdown").classList.remove("open"));
-$("dropdown").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) post({type: b.dataset.act}); });
+document.querySelector(".actions").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) post({type: b.dataset.act}); });
 
 window.render = render;
 new ResizeObserver(() => post({type: "size", height: $("panel").offsetHeight})).observe($("panel"));
