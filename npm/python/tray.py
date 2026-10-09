@@ -81,6 +81,7 @@ def main() -> None:
             self.item = bar.statusItemWithLength_(NSVariableStatusItemLength)
             self.item.button().setTarget_(self)
             self.item.button().setAction_("toggle:")
+            self.item.button().sendActionOn_(1 << 1)  # fire on mouse-down
 
             config = WKWebViewConfiguration.alloc().init()
             controller = WKUserContentController.alloc().init()
@@ -97,6 +98,7 @@ def main() -> None:
             self.win.setOpaque_(False)
             self.win.setBackgroundColor_(NSColor.clearColor())
             self.win.setHasShadow_(True)
+            self.win.setHidesOnDeactivate_(False)  # NSPanel hides when its (accessory) app is inactive, which is always
             self.win.setLevel_(NSStatusWindowLevel)
             self.win.setContentView_(self.web)
             self.win.setReleasedWhenClosed_(False)
