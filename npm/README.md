@@ -208,7 +208,9 @@ A small app that puts Pintu in your menu bar. Click him and a dark dashboard dro
 - **Agents**: every agent as a row with its own animated Pintu face, a status pill (Working, Needs input, Needs approval, Error, Done), a live timer and its latest message. Click a row to jump back to that agent's app.
 - **Today**: tasks finished, errors, an hour-by-hour chart, and the longest run.
 
-The menu-bar icon itself shows the most urgent agent's face, with a number for how many need you.
+The menu-bar icon itself is animated. It shows the most urgent agent's face (with a number for how many need you), and when nothing needs you Pintu keeps busy: he waves, puts on a knitted sweater, sips coffee, bobs to music in headphones and takes naps.
+
+`npx pintumcp` starts the menu-bar app for you and relaunches it at every login. (`uninstall` removes that.) Manual control:
 
 ```bash
 npx pintumcp tray            # Pintu appears in the menu bar
@@ -302,6 +304,10 @@ The server also tells your AI tool *when* to call each alert (via MCP server ins
 Everything runs locally inside the MCP process started by your AI tool. There is no account, cloud backend, database, or separate service to run.
 
 ---
+
+## Alerts for OpenCode and Claude Code
+
+`npx pintumcp` also installs an OpenCode plugin (`~/.config/opencode/plugins/pintumcp.js`) and Claude Code hooks, so you get a notification and sound when a reply finishes or an agent needs approval, without asking the agent to call a tool. Other tools (Claude Desktop, Codex, ...) alert when the agent calls a Pintu tool.
 
 ## Commands
 

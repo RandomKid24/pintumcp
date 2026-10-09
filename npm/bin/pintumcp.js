@@ -92,6 +92,21 @@ function printBanner() {
 
 // ─── Commands ───────────────────────────────────────────
 
+const LAUNCH_AGENT = path.join(os.homedir(), "Library", "LaunchAgents", "com.pintumcp.tray.plist");
+
+// Start Pintu in the menu bar now and again at every login.
+function startTrayAtLogin() {
+  if (process.platform !== "darwin") return;
+  cmdTray();
+  const args = [getVenvPython(), path.join(PYTHON_DIR, "tray.py")].map((a) => `<string>${a}</string>`).join("");
+  fs.mkdirSync(path.dirname(LAUNCH_AGENT), { recursive: true });
+  fs.writeFileSync(LAUNCH_AGENT, `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict><key>Label</key><string>com.pintumcp.tray</string>
+<key>ProgramArguments</key><array>${args}</array><key>RunAtLoad</key><true/></dict></plist>
+`);
+  console.log("  ✓ Pintu will start in the menu bar at login");
+}
+
 function cmdInstall() {
   printBanner();
   console.log("Setting up Python environment...\n");
@@ -132,6 +147,8 @@ function cmdInstall() {
       console.log("  ✓ Claude Code hooks installed");
     }
   } catch (e) { console.log(`  ✗ alerts setup: ${e.message}`); }
+
+  try { startTrayAtLogin(); } catch (e) { console.log(`  ✗ menu-bar app: ${e.message}`); }
 
   testNotification();
 
@@ -194,6 +211,7 @@ function cmdUninstall() {
   try { removeHooks(path.join(os.homedir(), ".claude", "settings.json")); } catch {}
   try { fs.rmSync(path.join(os.homedir(), ".config", "opencode", "plugins", "pintumcp.js"), { force: true }); } catch {}
   try { execSync("pkill -f python/tray.py", { stdio: "ignore" }); } catch {}
+  fs.rmSync(LAUNCH_AGENT, { force: true });
   fs.rmSync(VENV_DIR, { recursive: true, force: true });
   showPose("sad");
   console.log("\n  Removed the Python environment. Restart your AI tools to finish.\n");
