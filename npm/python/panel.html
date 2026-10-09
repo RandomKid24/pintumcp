@@ -109,7 +109,7 @@ const LABEL = {working: "Working", question: "Needs input", approval: "Needs app
 const $ = (id) => document.getElementById(id);
 let skew = 0, current = null;
 
-const post = (msg) => { if (window.webkit?.messageHandlers?.pintu) window.webkit.messageHandlers.pintu.postMessage(msg); };
+let post = (msg) => { if (window.webkit?.messageHandlers?.pintu) window.webkit.messageHandlers.pintu.postMessage(msg); };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 const now = () => Date.now() / 1000 - skew;
 
@@ -372,7 +372,15 @@ say.pin = (text, ms) => {
 
 window.render = render;
 new ResizeObserver(() => post({type: "size", height: $("panel").offsetHeight})).observe($("panel"));
-if (!window.webkit) {                      // browser preview with sample data
+const LIVE = !window.webkit && location.search.includes("live");     // Windows/Linux tray: same page in an app window
+if (LIVE) {
+  const token = new URLSearchParams(location.search).get("t");
+  post = (msg) => { if (["clear", "doctor", "quit"].includes(msg.type)) fetch(`/act/${msg.type}?t=${token}`, {method: "POST"}); };
+  const poll = () => fetch("/state").then((r) => r.json()).then(render).catch(() => {});
+  poll(); setInterval(() => active && poll(), 1000);
+  document.addEventListener("visibilitychange", () => { active = !document.hidden; if (active) window.opening(); });
+}
+if (!window.webkit && !LIVE) {                      // browser preview with sample data
   const t = Date.now() / 1000;
   const A = (name, state, message, inState, age, extra = {}) => ({key: name, name, state, message, in_state: inState, age, stale: false, ...extra});
   render({now: t, agents: [

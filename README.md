@@ -200,9 +200,9 @@ On macOS, install [terminal-notifier](https://github.com/julienXX/terminal-notif
 
 ---
 
-## Agent Status Board (macOS menu bar)
+## Agent Status Board (menu bar / system tray)
 
-A small app that puts Pintu in your menu bar. Click him and a dark dashboard drops down:
+A small app that puts Pintu in your menu bar (macOS) or system tray (Windows and Linux). Click him and a dark dashboard opens:
 
 - **Needs you / Working now** cards: how many agents are waiting on you, and how many are busy (with the longest run).
 - **Agents**: every agent as a row with its own animated Pintu face, a status pill (Working, Needs input, Needs approval, Error, Done), a live timer and its latest message. Click a row to jump back to that agent's app.
@@ -210,7 +210,16 @@ A small app that puts Pintu in your menu bar. Click him and a dark dashboard dro
 
 The menu-bar icon itself is animated. It shows the most urgent agent's face (with a number for how many need you), and when nothing needs you Pintu keeps busy: he waves, puts on a knitted sweater, sips coffee, bobs to music in headphones and takes naps.
 
-`npx pintumcp` starts the menu-bar app for you and relaunches it at every login. (`uninstall` removes that.) Manual control:
+`npx pintumcp` starts the app for you and relaunches it at every login (`uninstall` removes that). Next to his icon Pintu mutters a short line that follows his mood ("on it", "psst!", "ta-da!"), and in the panel he is a living pixel character: he blinks, follows your cursor, reacts when you click him, and acts out each state.
+
+| | macOS | Windows / Linux |
+|---|---|---|
+| Icon | animated menu-bar icon | animated tray icon (his line shows as the hover tooltip) |
+| Panel | native dropdown | the same dashboard in a small app window (Edge/Chrome app mode, or your browser) |
+| Starts at login | LaunchAgent | Startup folder / `~/.config/autostart` |
+| Needs | `pyobjc-framework-WebKit` (auto-installed) | `pystray` + `pillow` (auto-installed); Linux also needs a tray/AppIndicator |
+
+On Windows and Linux a tiny server on `127.0.0.1` serves the page and your local status files; nothing leaves your machine. Manual control:
 
 ```bash
 npx pintumcp tray            # Pintu appears in the menu bar
@@ -223,7 +232,7 @@ npx pintumcp hooks install   # optional: Claude Code reports its status by itsel
 - The MCP tools you already have: `agent_working`, `agent_question`, `agent_approval`, `agent_error`, `agent_done`, plus `agent_status` for silent progress notes. Pass `project` and `agent` so rows have good names; without them each AI session gets its own "Session 1234" row.
 - Claude Code hooks (optional, `hooks install`): Claude Code reports "working", "needs permission / input" and "done" automatically, so it shows up even if the AI never calls a tool. `hooks remove` undoes it, and your settings file is backed up first.
 
-Limits: an agent only shows up if it reports, and an agent that goes quiet while "working" for 10 minutes is flagged as maybe stuck. Everything stays on your machine, in small files under `~/.pintumcp/agents`. The dashboard is macOS-only for now; Windows and Linux builds are planned.
+Limits: an agent only shows up if it reports, and an agent that goes quiet while "working" for 10 minutes is flagged as maybe stuck. Everything stays on your machine, in small files under `~/.pintumcp/agents`. 
 
 ---
 

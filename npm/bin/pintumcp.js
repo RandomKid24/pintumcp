@@ -96,8 +96,19 @@ const LAUNCH_AGENT = path.join(os.homedir(), "Library", "LaunchAgents", "com.pin
 
 // Start Pintu in the menu bar now and again at every login.
 function startTrayAtLogin() {
-  if (process.platform !== "darwin") return;
   cmdTray();
+  if (process.platform === "win32") {            // a .vbs in Startup runs the tray with no console window
+    const startup = path.join(process.env.APPDATA || "", "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "pintumcp-tray.vbs");
+    fs.writeFileSync(startup, `CreateObject("Wscript.Shell").Run """${getVenvPython()}"" ""${path.join(PYTHON_DIR, "tray_cross.py")}""", 0\r\n`);
+    return console.log("  ✓ Pintu will start in the tray at login");
+  }
+  if (process.platform === "linux") {
+    const dir = path.join(os.homedir(), ".config", "autostart");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "pintumcp.desktop"),
+      `[Desktop Entry]\nType=Application\nName=Pintu\nExec="${getVenvPython()}" "${path.join(PYTHON_DIR, "tray_cross.py")}"\nX-GNOME-Autostart-enabled=true\n`);
+    return console.log("  ✓ Pintu will start in the tray at login");
+  }
   const args = [getVenvPython(), path.join(PYTHON_DIR, "tray.py")].map((a) => `<string>${a}</string>`).join("");
   fs.mkdirSync(path.dirname(LAUNCH_AGENT), { recursive: true });
   fs.writeFileSync(LAUNCH_AGENT, `<?xml version="1.0" encoding="UTF-8"?>
@@ -210,8 +221,10 @@ function cmdUninstall() {
   }
   try { removeHooks(path.join(os.homedir(), ".claude", "settings.json")); } catch {}
   try { fs.rmSync(path.join(os.homedir(), ".config", "opencode", "plugins", "pintumcp.js"), { force: true }); } catch {}
-  try { execSync("pkill -f python/tray.py", { stdio: "ignore" }); } catch {}
+  try { execSync("pkill -f python/tray", { stdio: "ignore" }); } catch {}
   fs.rmSync(LAUNCH_AGENT, { force: true });
+  try { fs.rmSync(path.join(os.homedir(), ".config", "autostart", "pintumcp.desktop"), { force: true }); } catch {}
+  try { fs.rmSync(path.join(process.env.APPDATA || "", "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "pintumcp-tray.vbs"), { force: true }); } catch {}
   fs.rmSync(VENV_DIR, { recursive: true, force: true });
   showPose("sad");
   console.log("\n  Removed the Python environment. Restart your AI tools to finish.\n");
@@ -241,13 +254,17 @@ function cmdDoctor() {
 }
 
 function cmdTray(sub) {
-  if (process.platform !== "darwin") {
-    console.log("The menu-bar app is macOS-only for now (Windows and Linux are planned).");
+  const mac = process.platform === "darwin", script = mac ? "tray.py" : "tray_cross.py";
+  if (sub === "stop-quiet") {
+    try { if (process.platform !== "win32") execSync(`pkill -f python/${script}`, { stdio: "ignore" }); } catch {}
     return;
   }
   if (sub === "stop") {
-    try { execSync("pkill -f python/tray.py"); console.log("Pintu left the menu bar."); }
-    catch { console.log("The menu-bar app was not running."); }
+    try {
+      if (process.platform === "win32") execSync(`wmic process where "commandline like '%tray_cross.py%'" call terminate`, { stdio: "ignore" });
+      else execSync(`pkill -f python/${script}`);
+      console.log("Pintu left the tray.");
+    } catch { console.log("The tray app was not running."); }
     return;
   }
   const py = getVenvPython();
@@ -255,16 +272,18 @@ function cmdTray(sub) {
     console.error("Run `pintumcp install` first.");
     process.exit(1);
   }
+  const [probe, pkg] = mac ? ["import WebKit", "pyobjc-framework-WebKit>=10"] : ["import pystray, PIL", "pystray pillow"];
   try {
-    execSync(`"${py}" -c "import WebKit"`, { stdio: "ignore" });
+    execSync(`"${py}" -c "${probe}"`, { stdio: "ignore" });
   } catch {
-    console.log("Installing the menu-bar dependency (pyobjc WebKit)...");
-    execSync(`"${py}" -m pip install "pyobjc-framework-WebKit>=10" --quiet`, { stdio: "inherit" });
+    console.log(`Installing the tray dependency (${pkg})...`);
+    execSync(`"${py}" -m pip install ${mac ? `"${pkg}"` : pkg} --quiet`, { stdio: "inherit" });
   }
-  try { execSync("pkill -f python/tray.py", { stdio: "ignore" }); } catch {}
-  const child = spawn(py, [path.join(PYTHON_DIR, "tray.py")], { detached: true, stdio: "ignore", cwd: PYTHON_DIR });
+  cmdTray("stop-quiet");
+  const child = spawn(py, [path.join(PYTHON_DIR, script)], { detached: true, stdio: "ignore", cwd: PYTHON_DIR, windowsHide: true });
   child.unref();
-  console.log("Pintu is in your menu bar. Stop him with `pintumcp tray stop`.");
+  console.log(mac ? "Pintu is in your menu bar. Stop him with `pintumcp tray stop`."
+                  : "Pintu is in your system tray (Linux: needs a tray/AppIndicator). Stop him with `pintumcp tray stop`.");
 }
 
 function cmdHooks(sub) {
