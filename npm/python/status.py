@@ -18,6 +18,7 @@ IDLE_AFTER = 30 * 60      # a finished agent is "idle" after this many seconds
 STALE_AFTER = 10 * 60     # a working agent that went quiet this long may be stuck
 FORGET_AFTER = 12 * 3600  # drop agents that have not reported for this long
 FORGET_NEEDS_AFTER = 2 * 3600   # an unanswered approval/question this old was abandoned
+FORGET_DONE_AFTER = 3 * 3600    # finished rows stop being interesting
 FORGET_WORKING_AFTER = 30 * 60  # a "working" agent silent this long is a dead session, not a busy one
 
 
@@ -38,6 +39,26 @@ def _dir() -> Path:
     path = root() / "agents"
     path.mkdir(mode=0o700, exist_ok=True)
     return path
+
+
+def pid_alive(pid: int) -> bool:
+    """Is the session that owns a row still running? (a crashed or closed session leaves its row behind)"""
+    try:
+        if os.name == "nt":
+            import ctypes
+            handle = ctypes.windll.kernel32.OpenProcess(0x1000, False, int(pid))
+            if not handle:
+                return False
+            code = ctypes.c_ulong()
+            ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+            ctypes.windll.kernel32.CloseHandle(handle)
+            return code.value == 259  # STILL_ACTIVE
+        os.kill(int(pid), 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except (PermissionError, OSError, ValueError):
+        return True  # exists but isn't ours, or we can't tell: keep the row
 
 
 def identity(project: str | None, agent: str | None) -> tuple[str, str]:
@@ -66,8 +87,12 @@ def _log_transition(entry: dict) -> None:
 
 
 def update(state: str, message: str = "", project: str | None = None,
-           agent: str | None = None, app: str | None = None, now: float | None = None) -> bool:
-    """Record an agent's latest state. Returns False (never raises) if it could not."""
+           agent: str | None = None, app: str | None = None, now: float | None = None, pid=None) -> bool:
+    """Record an agent's latest state. Returns False (never raises) if it could not.
+
+    pid: the long-lived process behind this agent (an int, or a function that finds it, only called the
+    first time). When it exits, the row disappears, so closed or crashed sessions don't linger.
+    """
     try:
         project, agent = identity(project, agent)
         now = time.time() if now is None else now
@@ -75,6 +100,7 @@ def update(state: str, message: str = "", project: str | None = None,
         since = now
         changed = True
         took = None  # how long the last piece of work took (set when "working" ends)
+        old = {}
         try:
             old = json.loads(path.read_text(encoding="utf-8"))
             if old.get("state") == state:
@@ -87,9 +113,12 @@ def update(state: str, message: str = "", project: str | None = None,
             app = app or old.get("app")
         except (OSError, ValueError):
             pass
+        if callable(pid):
+            pid = old.get("pid") or pid()
+        pid = pid or old.get("pid")
         entry = {"project": project, "agent": agent, "state": state,
                  "message": " ".join(str(message).split())[:200], "since": since,
-                 "updated": now, "app": app, "took": took}
+                 "updated": now, "app": app, "took": took, "pid": pid}
         tmp = path.with_suffix(f".{os.getpid()}.tmp")
         tmp.write_text(json.dumps(entry), encoding="utf-8")
         os.replace(tmp, path)  # atomic: the reader never sees half a file
@@ -114,8 +143,12 @@ def snapshot(now: float | None = None) -> list[dict]:
             age = now - item["updated"]
         except (OSError, ValueError, KeyError):
             continue
+        if item.get("pid") and not pid_alive(item["pid"]):
+            path.unlink(missing_ok=True)
+            continue
         if age > FORGET_AFTER or (item.get("state") == "working" and age > FORGET_WORKING_AFTER) \
-                or (item.get("state") in ("approval", "question") and age > FORGET_NEEDS_AFTER):
+                or (item.get("state") in ("approval", "question") and age > FORGET_NEEDS_AFTER) \
+                or (item.get("state") == "done" and age > FORGET_DONE_AFTER):
             path.unlink(missing_ok=True)
             continue
         item["age"] = age

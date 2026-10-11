@@ -13,7 +13,7 @@ import status
 
 def _track(state: str, message: str, project: str | None, agent: str | None) -> None:
     """Record this agent on the local status board (best effort; the menu-bar app reads it)."""
-    status.update(state, message, project, agent, app=os.environ.get("__CFBundleIdentifier"))
+    status.update(state, message, project, agent, app=os.environ.get("__CFBundleIdentifier"), pid=os.getpid())
 
 
 mcp = MCPServer(
@@ -116,7 +116,7 @@ def agent_status(
     Call it every few minutes during long work so it is not shown as possibly stuck.
     """
     return {"recorded": status.update("working", message, project, agent,
-                                      app=os.environ.get("__CFBundleIdentifier"))}
+                                      app=os.environ.get("__CFBundleIdentifier"), pid=os.getpid())}
 
 
 @mcp.tool()

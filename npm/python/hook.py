@@ -6,10 +6,41 @@ Reads the hook JSON on stdin. Best effort: it always exits 0 so it can never blo
 
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
 import status
+
+
+def _proc(pid: int):
+    """(parent pid, command line) of a process, or None."""
+    try:
+        if sys.platform.startswith("linux"):
+            with open(f"/proc/{pid}/stat") as f:
+                ppid = int(f.read().rsplit(")", 1)[1].split()[1])
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                return ppid, f.read().replace(b"\0", b" ").decode(errors="ignore")
+        out = subprocess.run(["ps", "-o", "ppid=,command=", "-p", str(pid)], capture_output=True, text=True, timeout=2).stdout.strip()
+        ppid, _, command = out.partition(" ")
+        return int(ppid), command
+    except Exception:
+        return None
+
+
+def owner_pid():
+    """The Claude Code process that ran this hook (the hook itself exits at once), or None if not found."""
+    if os.name == "nt":
+        return None
+    pid = os.getppid()
+    for _ in range(6):
+        info = _proc(pid)
+        if not info or pid <= 1:
+            return None
+        if "claude" in info[1].lower():
+            return pid
+        pid = info[0]
+    return None
 
 
 def classify(event: str, payload: dict):
@@ -43,7 +74,7 @@ def main() -> None:
         agent = "Claude " + str(payload.get("session_id") or "")[:4]
         if result[0] == "gone":
             return status.remove(project, agent.strip())
-        status.update(result[0], result[1], project, agent.strip(), app=os.environ.get("__CFBundleIdentifier"))
+        status.update(result[0], result[1], project, agent.strip(), app=os.environ.get("__CFBundleIdentifier"), pid=owner_pid)
         if result[0] in ("done", "approval", "question"):
             import events
             events.deliver_event(result[0], result[1], 80, project, agent.strip())
