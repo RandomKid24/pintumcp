@@ -223,6 +223,9 @@ The menu-bar icon itself is animated. It shows the most urgent agent's face (wit
 
 - **Animated alert popup (macOS):** while the menu-bar app runs, alerts appear as a small floating Pintu card at the top-right (he cheers, hops, sweats or naps to match the event) instead of a plain notification. Click it to jump to the agent's app. If the app isn't running, you get the normal notification.
 - **Live rows:** each row is tied to the Claude Code / OpenCode / MCP process behind it, so closing or crashing a session removes its row at once instead of leaving it as "working" or "stuck". OpenCode now reports working / approval / done to the board too, not just alerts.
+- **Settings (gear in the panel):** volume, sound, notifications, the animated popup, "maybe stuck?" alerts, quiet hours, how long Mute lasts, and "skip done while the agent's app is focused". Changes apply instantly to every running agent and are kept in `~/.pintumcp/settings.json`, so updates never reset them.
+- **Remove an agent by hand:** hover a row and click the **×**, or click **remove** on a "quiet, maybe stuck?" row. Settings has "Remove all stale agents".
+- **Ubuntu / GNOME:** Pintu shows in the top bar through AppIndicator (left-click opens its menu, then "Open Pintu"). The installer also adds a **Pintu** entry to your app menu, and if GNOME has no tray it opens the panel window for you, so you can always reach it. Only one Pintu runs per user.
 - **Stuck alert:** an agent that says "working" but goes quiet for 10 minutes gets one "maybe stuck?" alert. Dead sessions that never report back are dropped after 30 minutes, so the count stays honest.
 - **Mute 1h:** one tap in the panel (or tray menu) silences alerts for an hour; errors still come through. Pintu naps while muted.
 - **Outfits:** when idle he rotates through waving, a knitted sweater, coffee, headphones, a nap, a top hat, glasses, an umbrella in the rain and a party hat.

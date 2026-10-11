@@ -15,9 +15,60 @@ DEFAULTS = {
     "quiet_hours": None,
     # Skip "task complete" alerts while the app running the agent is already focused (macOS)
     "mute_when_focused": False,
+    # Settings screen in the panel
+    "toast_enabled": True,     # animated Pintu popup (macOS) instead of the system notification
+    "stuck_alerts": True,      # one "maybe stuck?" alert per quiet agent
+    "mute_minutes": 60,        # what the Mute button mutes for
 }
 
+# Panel-editable keys; they live in ~/.pintumcp/settings.json so package updates never wipe them
+USER_KEYS = ("volume", "sound_enabled", "notification_enabled", "toast_enabled", "stuck_alerts",
+             "quiet_hours", "mute_when_focused", "mute_minutes")
+
 _config: dict | None = None
+_stamp = None  # (mtime of config.json, mtime of settings.json) the cache was built from
+
+
+def _user_path() -> Path:
+    import status
+    return status.root() / "settings.json"
+
+
+def _mtimes():
+    out = []
+    for p in (_config_path(), _user_path()):
+        try:
+            out.append(p.stat().st_mtime_ns)
+        except OSError:
+            out.append(0)
+    return tuple(out)
+
+
+def save_user(values: dict) -> dict:
+    """Merge panel-edited settings into settings.json (only known keys, basic type checks)."""
+    path = _user_path()
+    try:
+        current = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        current = {}
+    for key, value in values.items():
+        if key not in USER_KEYS:
+            continue
+        if key == "volume":
+            value = max(0, min(int(value), 100))
+        elif key == "mute_minutes":
+            value = max(5, min(int(value), 24 * 60))
+        elif key == "quiet_hours":
+            value = value if isinstance(value, dict) and {"start", "end"} <= set(value) else None
+        else:
+            value = bool(value)
+        current[key] = value
+    path.write_text(json.dumps(current), encoding="utf-8")
+    return current
+
+
+def user_settings() -> dict:
+    return {k: get(k) for k in USER_KEYS}
 
 
 def _config_path() -> Path:
@@ -26,9 +77,10 @@ def _config_path() -> Path:
 
 def load_config() -> dict:
     """Load config from config.json, falling back to defaults."""
-    global _config
-    if _config is not None:
+    global _config, _stamp
+    if _config is not None and _stamp == _mtimes():  # cheap stat; edits from the panel apply to every process
         return _config
+    _stamp = _mtimes()
 
     cfg = dict(DEFAULTS)
     path = _config_path()
@@ -40,6 +92,12 @@ def load_config() -> dict:
             cfg.update(user_cfg)
         except (json.JSONDecodeError, OSError):
             pass
+
+    try:
+        user = json.loads(_user_path().read_text(encoding="utf-8"))
+        cfg.update({k: v for k, v in user.items() if k in USER_KEYS})
+    except (OSError, ValueError):
+        pass
 
     # Env var overrides
     env_map = {

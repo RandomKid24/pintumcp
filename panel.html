@@ -53,6 +53,24 @@
           border-radius: 999px; padding: 3px 9px; }
   .time { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text); margin-top: 4px; }
   .took { color: var(--muted); font-size: 11px; }
+  .gear { background: var(--card); border: 0; color: var(--muted); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
+  .gear:hover { background: var(--card-2); color: var(--text); }
+  .settings { display: none; margin-bottom: 8px; }
+  body.settings-open .settings { display: block; }
+  body.settings-open .hero, body.settings-open .grid, body.settings-open #agents, body.settings-open #today, body.settings-open .actions { display: none; }
+  .set { display: flex; align-items: center; gap: 8px; padding: 7px 2px; font-size: 12.5px; border-top: 1px solid var(--line); }
+  .set:first-of-type { border-top: 0; }
+  .set > span:first-child { flex: 1; } .set i { color: var(--muted); font-style: normal; }
+  .set.sub { justify-content: flex-end; padding-top: 0; color: var(--muted); font-size: 12px; }
+  .set input[type=range] { width: 120px; accent-color: var(--teal); } .set b { width: 28px; text-align: right; font-weight: 600; }
+  .set input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--teal); }
+  .set input[type=time], .set select { background: var(--card-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; font: inherit; font-size: 12px; }
+  .wide { width: 100%; margin-top: 8px; padding: 8px; border-radius: 12px; border: 0; background: var(--card-2); color: var(--text); font: inherit; font-weight: 600; font-size: 12.5px; cursor: pointer; }
+  .wide:hover { background: #26262d; } .wide.ghost { background: transparent; color: var(--muted); }
+  .x { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%; border: 0; background: rgba(255,255,255,.08); color: var(--muted);
+       font-size: 12px; line-height: 1; cursor: pointer; opacity: 0; transition: opacity .12s; }
+  .row { position: relative; } .row:hover .x { opacity: 1; } .x:hover { background: var(--error); color: #fff; }
+  .rm { color: var(--muted); text-decoration: underline; cursor: pointer; margin-left: 4px; } .rm:hover { color: var(--error); }
   .stuck { color: var(--question); font-size: 11.5px; }
   .empty { text-align: center; padding: 14px 12px 16px; color: var(--muted); font-size: 13px; }
   .empty img { width: 80px; image-rendering: pixelated; display: block; margin: 0 auto 8px; }
@@ -86,7 +104,24 @@
   <header>
     <h1>Pintu</h1>
     <span class="chip" id="count">0 agents</span>
+    <button class="gear" id="gear" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
+
+  <div class="card settings" id="settings">
+    <h2>Settings</h2>
+    <label class="set"><span>Volume</span><input type="range" min="0" max="100" id="s-volume"><b id="s-volume-n"></b></label>
+    <label class="set"><span>Sound</span><input type="checkbox" id="s-sound"></label>
+    <label class="set"><span>Notifications</span><input type="checkbox" id="s-notify"></label>
+    <label class="set"><span>Animated Pintu popup <i>(macOS)</i></span><input type="checkbox" id="s-toast"></label>
+    <label class="set"><span>"Maybe stuck?" alerts</span><input type="checkbox" id="s-stuck"></label>
+    <label class="set"><span>Skip "done" while the agent's app is focused</span><input type="checkbox" id="s-focus"></label>
+    <label class="set"><span>Quiet hours</span><input type="checkbox" id="s-quiet"></label>
+    <div class="set sub" id="s-quiet-times"><span>From</span><input type="time" id="s-qs"><span>to</span><input type="time" id="s-qe"></div>
+    <label class="set"><span>Mute button lasts</span>
+      <select id="s-mute"><option value="30">30 min</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option></select></label>
+    <button class="wide" id="s-stale">Remove all stale agents</button>
+    <button class="wide ghost" id="s-back">Done</button>
+  </div>
 
   <div class="card hero">
     <div class="tile"><canvas id="pet" width="132" height="120"></canvas></div>
@@ -154,7 +189,7 @@ function render(data) {
   pet.data = {agents, needs, working};
   const muted = (data.muted_until || 0) > data.now;
   pet.muted = muted;
-  $("mute-label").textContent = muted ? `Unmute (${Math.ceil((data.muted_until - data.now) / 60)}m)` : "Mute 1h";
+  $("mute-label").textContent = muted ? `Unmute (${Math.ceil((data.muted_until - data.now) / 60)}m)` : `Mute ${((m) => (m % 60 ? `${m}m` : `${m / 60}h`))((data.settings || {}).mute_minutes || 60)}`;
 
   const urgent = needs.length ? needs[0].state : null;
   $("needs").style.setProperty("--c", urgent ? COLOR[urgent] : COLOR.done);
@@ -174,6 +209,7 @@ function render(data) {
   } else {
     $("agents").innerHTML = `<h2>Agents</h2>` + agents.map((a) => `
       <div class="row" data-key="${esc(a.key)}" style="--c:${COLOR[a.state] || COLOR.idle}">
+        <button class="x" data-rm="${esc(a.key)}" title="Remove this agent from the list" aria-label="Remove">×</button>
         <div class="face"><img src="assets/pet/${a.state}.gif" alt=""></div>
         <div class="who"><div class="name">${esc(a.name)}</div><div class="msg">${esc(a.message) || "&nbsp;"}</div></div>
         <div class="right">
@@ -181,7 +217,7 @@ function render(data) {
           <div class="time">${a.state === "working"
             ? `<span data-since="${data.now - a.in_state}">${clock(a.in_state)}</span> <span class="took">running</span>`
             : `${a.took ? `<span>took ${span(a.took)}</span> <span class="took">·</span> ` : ""}<span class="took" data-ago="${data.now - a.age}">${ago(a.age)}</span>`}</div>
-          ${a.stale ? `<div class="stuck">quiet, maybe stuck?</div>` : ""}
+          ${a.stale ? `<div class="stuck">quiet, maybe stuck? <span class="rm" data-rm="${esc(a.key)}">remove</span></div>` : ""}
         </div>
       </div>`).join("");
   }
@@ -207,7 +243,11 @@ setInterval(() => {                         // live timers without asking Python
   document.querySelectorAll("[data-ago]").forEach((el) => { el.textContent = ago(now() - +el.dataset.ago); });
 }, 1000);
 
-$("agents").addEventListener("click", (e) => { const r = e.target.closest(".row"); if (r) post({type: "focus", key: r.dataset.key}); });
+$("agents").addEventListener("click", (e) => {
+  const rm = e.target.closest("[data-rm]");
+  if (rm) { e.stopPropagation(); return post({type: "remove", key: rm.dataset.rm}); }
+  const r = e.target.closest(".row"); if (r) post({type: "focus", key: r.dataset.key});
+});
 document.querySelector(".actions").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) post({type: b.dataset.act}); });
 
 let barsHover = false;
@@ -334,7 +374,32 @@ say.pin = (text, ms) => {
   pet.overrideUntil = Math.max(pet.overrideUntil, performance.now() + ms); pet.override = pet.override || "wave";
 };
 
-window.render = render;
+// ---- settings screen: values come from Python (settings.json); every change is saved at once
+let settings = {};
+const SET = {volume: "s-volume", sound_enabled: "s-sound", notification_enabled: "s-notify", toast_enabled: "s-toast",
+             stuck_alerts: "s-stuck", mute_when_focused: "s-focus", mute_minutes: "s-mute"};
+function fillSettings() {
+  const s = settings, q = s.quiet_hours;
+  for (const [k, id] of Object.entries(SET)) { const el = $(id); if (el.type === "checkbox") el.checked = !!s[k]; else el.value = s[k] ?? el.value; }
+  $("s-volume-n").textContent = $("s-volume").value;
+  $("s-quiet").checked = !!q; $("s-qs").value = q ? q.start : "22:00"; $("s-qe").value = q ? q.end : "08:00";
+  $("s-quiet-times").style.display = q ? "flex" : "none";
+}
+function saveSettings() {
+  const v = {};
+  for (const [k, id] of Object.entries(SET)) { const el = $(id); v[k] = el.type === "checkbox" ? el.checked : +el.value; }
+  v.quiet_hours = $("s-quiet").checked ? {start: $("s-qs").value || "22:00", end: $("s-qe").value || "08:00"} : null;
+  $("s-volume-n").textContent = v.volume; $("s-quiet-times").style.display = v.quiet_hours ? "flex" : "none";
+  post({type: "settings", json: JSON.stringify(v)});
+}
+$("gear").addEventListener("click", (e) => { e.stopPropagation(); fillSettings(); document.body.classList.toggle("settings-open"); });
+$("s-back").addEventListener("click", () => document.body.classList.remove("settings-open"));
+$("s-stale").addEventListener("click", () => post({type: "remove_stale"}));
+$("settings").addEventListener("change", saveSettings);
+$("settings").addEventListener("input", (e) => { if (e.target.id === "s-volume") $("s-volume-n").textContent = e.target.value; });
+const _render = render;
+render = (data) => { if (!document.body.classList.contains("settings-open")) settings = data.settings || settings; _render(data); };
+
 new ResizeObserver(() => post({type: "size", height: $("panel").offsetHeight})).observe($("panel"));
 const LIVE = !window.webkit && location.search.includes("live");     // Windows/Linux tray: same page in an app window
 if (LIVE) {
@@ -342,7 +407,9 @@ if (LIVE) {
   const token = new URLSearchParams(location.search).get("t");
   post = (msg) => {
     if (msg.type === "size") fetch(`/act/size?h=${Math.ceil(msg.height) + 2}&t=${token}`, {method: "POST"});
-    else if (["clear", "doctor", "mute", "quit"].includes(msg.type)) fetch(`/act/${msg.type}?t=${token}`, {method: "POST"});
+    else if (["clear", "doctor", "mute", "quit", "remove_stale"].includes(msg.type)) fetch(`/act/${msg.type}?t=${token}`, {method: "POST"});
+    else if (msg.type === "settings") fetch(`/act/settings?t=${token}`, {method: "POST", body: msg.json});
+    else if (msg.type === "remove") fetch(`/act/remove?t=${token}&key=${encodeURIComponent(msg.key)}`, {method: "POST"});
   };
   const poll = () => fetch("/state").then((r) => r.json()).then(render).catch(() => {});
   poll(); setInterval(() => active && poll(), 1000);

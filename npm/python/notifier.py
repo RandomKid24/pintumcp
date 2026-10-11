@@ -292,7 +292,10 @@ def send_notification(
     """Send a platform-native popup and, by default, a gentle sound."""
     result = {"notification": False, "sound": False, "platform": SYSTEM}
     icon = icon or ICON_PATH
-    if SYSTEM == "Darwin" and _toast(title, message, icon):
+    from config import get
+    if not get("notification_enabled", True):
+        result["notification"] = False
+    elif SYSTEM == "Darwin" and get("toast_enabled", True) and _toast(title, message, icon):
         result["notification"] = True  # the tray app shows it as an animated Pintu popup
     elif SYSTEM == "Darwin":
         result["notification"] = _macos_notify(title, message, icon)
@@ -303,7 +306,7 @@ def send_notification(
     else:
         print(f"[pintumcp] Unsupported platform: {SYSTEM}", file=sys.stderr)
 
-    if play_snd:
+    if play_snd and get("sound_enabled", True):
         result["sound"] = play_sound(sound, volume)
     return result
 

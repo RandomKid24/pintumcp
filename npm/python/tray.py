@@ -72,12 +72,15 @@ def payload(items: list = None, now: float = None) -> dict:
     agents = [{"key": agent_key(i), "name": status.describe(i)["name"], "state": i["state"],
                "message": i["message"], "in_state": i["in_state"], "age": i["age"], "stale": i["stale"], "took": i.get("took")}
               for i in items]
-    return {"now": now, "agents": agents, "today": status.today_stats(now), "muted_until": status.muted_until()}
+    import config
+    return {"now": now, "agents": agents, "today": status.today_stats(now), "muted_until": status.muted_until(),
+            "settings": config.user_settings()}
 
 
 def stuck_alerts(items: list, seen: set) -> None:
     """One heads-up per agent that went quiet while "working"; forgotten again once it moves on."""
-    stale = {agent_key(i): i for i in items if i.get("stale")}
+    import config
+    stale = {agent_key(i): i for i in items if i.get("stale")} if config.get("stuck_alerts", True) else {}
     seen &= set(stale)
     for key, item in stale.items():
         if key not in seen:
@@ -297,7 +300,21 @@ def main() -> None:
                         subprocess.run(["open", "-b", item["app"]], check=False)
                         self.hide()
             elif kind == "mute":
-                status.set_mute(0 if status.muted_until() else 3600)
+                import config
+                status.set_mute(0 if status.muted_until() else config.get("mute_minutes", 60) * 60)
+                self.tick_(None)
+            elif kind == "settings":
+                import config
+                config.save_user(json.loads(str(body.get("json") or "{}")))
+            elif kind == "remove_stale":
+                for item in self.items:
+                    if item.get("stale"):
+                        status.remove(item["project"], item["agent"])
+                self.tick_(None)
+            elif kind == "remove":
+                for item in self.items:
+                    if agent_key(item) == body.get("key"):
+                        status.remove(item["project"], item["agent"])
                 self.tick_(None)
             elif kind == "toastclick":
                 if body.get("app"):

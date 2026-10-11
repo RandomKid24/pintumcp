@@ -107,6 +107,11 @@ function startTrayAtLogin() {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "pintumcp.desktop"),
       `[Desktop Entry]\nType=Application\nName=Pintu\nExec="${getVenvPython()}" "${path.join(PYTHON_DIR, "tray_cross.py")}"\nX-GNOME-Autostart-enabled=true\n`);
+    // an app-menu entry too, so Pintu can always be opened even where the shell hides tray icons
+    const apps = path.join(os.homedir(), ".local", "share", "applications");
+    fs.mkdirSync(apps, { recursive: true });
+    fs.writeFileSync(path.join(apps, "pintumcp.desktop"),
+      `[Desktop Entry]\nType=Application\nName=Pintu\nComment=Agent status board\nExec="${getVenvPython()}" "${path.join(PYTHON_DIR, "tray_cross.py")}" --open\nIcon=${path.join(PYTHON_DIR, "assets", "pintumcp-icon.png")}\nCategories=Utility;\nTerminal=false\n`);
     return console.log("  ✓ Pintu will start in the tray at login");
   }
   const args = [getVenvPython(), path.join(PYTHON_DIR, "tray.py")].map((a) => `<string>${a}</string>`).join("");
@@ -224,6 +229,7 @@ function cmdUninstall() {
   try { execSync("pkill -f python/tray", { stdio: "ignore" }); } catch {}
   fs.rmSync(LAUNCH_AGENT, { force: true });
   try { fs.rmSync(path.join(os.homedir(), ".config", "autostart", "pintumcp.desktop"), { force: true }); } catch {}
+  try { fs.rmSync(path.join(os.homedir(), ".local", "share", "applications", "pintumcp.desktop"), { force: true }); } catch {}
   try { fs.rmSync(path.join(process.env.APPDATA || "", "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "pintumcp-tray.vbs"), { force: true }); } catch {}
   fs.rmSync(VENV_DIR, { recursive: true, force: true });
   showPose("sad");
