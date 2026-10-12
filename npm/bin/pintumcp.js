@@ -280,7 +280,15 @@ function cmdDoctor() {
 
 // Ubuntu/GNOME shows tray icons only through AppIndicator, which pystray reaches via PyGObject ("gi").
 // The venv can't see the system's gi unless system site-packages are on, so turn that on and re-check.
+// Ubuntu 22.04 ships the extension as ubuntu-appindicators@ubuntu.com, 24.04+ as appindicatorsupport@rgcjonas.gmail.com.
+function enableTrayExtension() {
+  for (const id of ["appindicatorsupport@rgcjonas.gmail.com", "ubuntu-appindicators@ubuntu.com"]) {
+    try { execSync(`gnome-extensions enable ${id}`, { stdio: "ignore" }); } catch {}
+  }
+}
+
 function ensureLinuxTray(py) {
+  enableTrayExtension();   // installed but switched off is the usual reason GNOME shows no icon (needs a log out/in once)
   const probe = () => { try { execSync(`"${py}" -c "import gi"`, { stdio: "ignore" }); return true; } catch { return false; } };
   if (probe()) return;
   const cfg = path.join(VENV_DIR, "pyvenv.cfg");
@@ -291,8 +299,8 @@ function ensureLinuxTray(py) {
   try {
     console.log("Installing the Ubuntu tray libraries (a password prompt will appear)...");
     execSync(`pkexec apt-get install -y ${pkgs}`, { stdio: "inherit" });
-    try { execSync("gnome-extensions enable ubuntu-appindicators@ubuntu.com", { stdio: "ignore" }); } catch {}
   } catch {}
+  enableTrayExtension();
   if (probe()) return;
   console.log(`
   Pintu still can't reach the Ubuntu tray. Install the libraries once, then log out and in:
