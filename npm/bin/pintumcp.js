@@ -280,7 +280,7 @@ function cmdDoctor() {
 
 // Ubuntu/GNOME shows tray icons only through AppIndicator, which pystray reaches via PyGObject ("gi").
 // The venv can't see the system's gi unless system site-packages are on, so turn that on and re-check.
-// Ubuntu 22.04 ships the extension as ubuntu-appindicators@ubuntu.com, 24.04+ as appindicatorsupport@rgcjonas.gmail.com.
+// Ubuntu's package ships ubuntu-appindicators@ubuntu.com; appindicatorsupport@... is the extensions.gnome.org build. Try both.
 function enableTrayExtension() {
   for (const id of ["appindicatorsupport@rgcjonas.gmail.com", "ubuntu-appindicators@ubuntu.com"]) {
     try { execSync(`gnome-extensions enable ${id}`, { stdio: "ignore" }); } catch {}
