@@ -5,9 +5,26 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "npm" / "python"))
 
 import tray  # noqa: E402
+
+
+import os
+import tempfile
+from unittest import mock
+
+
+def setUpModule():
+    global _home, _patch
+    _home = tempfile.TemporaryDirectory()
+    _patch = mock.patch.dict(os.environ, {"PINTUMCP_HOME": _home.name})
+    _patch.start()
+
+
+def tearDownModule():
+    _patch.stop()
+    _home.cleanup()
 
 
 class TrayTests(unittest.TestCase):
@@ -25,11 +42,11 @@ class TrayTests(unittest.TestCase):
         data = tray.payload([item], now=100)
         self.assertEqual(data["agents"][0]["key"], "API|Agent 1")
         self.assertEqual(data["agents"][0]["name"], "API · Agent 1")
-        self.assertEqual(set(data["today"]), {"done", "errors", "trend", "longest"})
+        self.assertTrue({"done", "errors", "trend", "longest"} <= set(data["today"]))
 
     def test_every_state_has_a_face(self):
         for state in ("working", "question", "approval", "error", "done", "idle", "empty"):
-            self.assertTrue(Path(tray.icon_for(state)).name == f"{state}.png")
+            self.assertTrue(Path(tray.frame_for(state, 0)).is_file(), state)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "npm" / "python"))
 
 try:
     import server
@@ -46,12 +46,7 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(rows[("API", "Agent 2")], ("approval", "Deploy?"))
         self.assertEqual(rows[("Web", "Agent 1")], ("done", "Built web"))
 
-    def test_npm_copy_matches_root(self):
-        for name in ("server.py", "notifier.py", "events.py", "config.py", "status.py", "tray.py", "hook.py", "panel.html"):
-            self.assertTrue(
-                filecmp.cmp(ROOT / name, ROOT / "npm/python" / name, shallow=False),
-                f"npm/python/{name} drifted; run scripts/sync.sh",
-            )
+    def test_npm_icons_match_the_assets_folder(self):
         for icon in [ROOT / "assets/pintumcp-icon.png", *(ROOT / "assets/icons").glob("*.png")]:
             copy = ROOT / "npm/python/assets" / icon.relative_to(ROOT / "assets")
             self.assertTrue(

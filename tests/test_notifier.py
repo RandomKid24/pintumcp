@@ -8,9 +8,26 @@ from unittest.mock import MagicMock, patch
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / "npm" / "python"))
 
 import notifier  # noqa: E402
+
+
+import os
+import tempfile
+from unittest import mock
+
+
+def setUpModule():
+    global _home, _patch
+    _home = tempfile.TemporaryDirectory()
+    _patch = mock.patch.dict(os.environ, {"PINTUMCP_HOME": _home.name})
+    _patch.start()
+
+
+def tearDownModule():
+    _patch.stop()
+    _home.cleanup()
 
 
 class NotifierTests(unittest.TestCase):

@@ -406,11 +406,11 @@ def today_stats(now: float | None = None, hours: int = 12) -> dict:
         bucket = int((now - e["updated"]) // 3600)
         if e["state"] == "done":
             done += e["updated"] >= day_start
-            if bucket < hours:
+            if 0 <= bucket < hours:
                 trend[hours - 1 - bucket] += 1
         elif e["state"] == "error":
             errors += e["updated"] >= day_start
-            if bucket < hours:
+            if 0 <= bucket < hours:
                 err_trend[hours - 1 - bucket] += 1
     for t in started.values():
         if now - t < FORGET_WORKING_AFTER:  # still running; an old start with no end was a session that just closed

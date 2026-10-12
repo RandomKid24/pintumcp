@@ -36,6 +36,11 @@ class InterruptTests(unittest.TestCase):
             self.assertEqual((row["state"], row["message"]), ("idle", "Stopped by you"))
             self.assertEqual(status.snapshot(now=1011)[0]["state"], "idle")  # and it stays that way
 
+    def test_today_card_survives_an_event_dated_in_the_future(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"PINTUMCP_HOME": tmp}):
+            status.update("done", "ok", "API", "A", now=5000)  # clock skew: newer than "now"
+            self.assertEqual(len(status.today_stats(now=100)["trend"]), 12)
+
     def test_windows_toast_runs_a_hidden_powershell(self):
         with mock.patch.object(notifier.subprocess, "run", return_value=SimpleNamespace(returncode=0, stderr="")) as run:
             self.assertTrue(notifier._windows_notify("Done", "it's <ok>"))
