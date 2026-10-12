@@ -85,10 +85,13 @@ class Popup:
                 return
             self._show()
 
+    def _launch(self) -> None:
+        self.proc = subprocess.Popen(self.command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     def _show(self) -> None:
         if not (self.hwnd and user32.IsWindow(self.hwnd)):
-            self.proc = subprocess.Popen(self.command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            for _ in range(80):  # wait up to 8s for Edge to create the window
+            self._launch()
+            for _ in range(80):  # wait up to 8s for the window to exist
                 time.sleep(0.1)
                 self.hwnd = self._find()
                 if self.hwnd:
@@ -126,3 +129,27 @@ class Popup:
                     self.hwnd, self.proc = 0, None
             except Exception:
                 pass
+
+
+class WebviewPopup(Popup):
+    """The same popup, but the page lives in a frameless pywebview window (WebView2) instead of an Edge app window.
+
+    tray_cross creates the window (offscreen) and calls adopt() once it exists; from then on it is shown,
+    placed and hidden exactly like the Edge version.
+    """
+
+    def __init__(self, url: str):
+        super().__init__(url, None)
+
+    def _launch(self) -> None:
+        pass  # the window already exists
+
+    def adopt(self) -> None:
+        for _ in range(100):
+            time.sleep(0.1)
+            self.hwnd = self._find()
+            if self.hwnd:
+                self._style(self.hwnd)  # no taskbar button; hidden until the tray icon is clicked
+                user32.ShowWindow(self.hwnd, SW_HIDE)
+                self.hidden_at = time.time()
+                return

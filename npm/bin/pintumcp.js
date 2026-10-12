@@ -309,6 +309,10 @@ function cmdTray(sub) {
     execSync(`"${py}" -m pip install ${mac ? `"${pkg}"` : pkg} --quiet`, { stdio: "inherit" });
   }
   if (process.platform === "linux") ensureLinuxTray(py);
+  if (process.platform === "win32") {            // a frameless native window for the panel; without it we fall back to an Edge window
+    try { execSync(`"${py}" -c "import webview"`, { stdio: "ignore" }); }
+    catch { try { execSync(`"${py}" -m pip install pywebview --quiet`, { stdio: "inherit" }); } catch { console.log("  (pywebview unavailable, using an Edge window for the panel)"); } }
+  }
   cmdTray("stop-quiet");
   const child = spawn(py, [path.join(PYTHON_DIR, script)], { detached: true, stdio: "ignore", cwd: PYTHON_DIR, windowsHide: true });
   child.unref();

@@ -18,8 +18,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-import pystray
-from PIL import Image
+try:
+    import pystray
+    from PIL import Image
+except Exception:  # no usable tray (headless or missing libraries): the panel still opens in a window
+    pystray = None
 
 import status
 import tray  # constants and payload() only; its macOS code lives inside main()
@@ -106,7 +109,7 @@ def open_panel():
         webbrowser.open(url)
 
 
-def icon_image(path: str) -> Image.Image:
+def icon_image(path: str):
     return Image.open(path).convert("RGBA").resize((72, 64), Image.NEAREST)
 
 
@@ -134,15 +137,28 @@ def main():
     SERVER_PORT = server.server_address[1]
     INSTANCE.write_text(json.dumps({"pid": os.getpid(), "port": SERVER_PORT, "token": TOKEN}))
     threading.Thread(target=server.serve_forever, daemon=True).start()
+    window = None
     if sys.platform == "win32":
         global POPUP
         import winpopup
         url = f"http://127.0.0.1:{SERVER_PORT}/?live&t={TOKEN}"
-        command = browser_app_command(url)
-        if command:
-            command += [f"--user-data-dir={status.root() / 'edge-profile'}", "--no-first-run", "--no-default-browser-check"]
-            POPUP = winpopup.Popup(url, command)
+        try:  # preferred: a frameless native window, so it never looks like a browser
+            import webview
+            window = webview.create_window("Pintu panel", url, width=400, height=720, x=-4000, y=-4000, frameless=True,
+                                           on_top=True, easy_drag=False, resizable=False, background_color="#000000")
+            POPUP = winpopup.WebviewPopup(url)
+        except Exception:
+            window = None
+            command = browser_app_command(url)  # fallback: Edge/Chrome in app mode, restyled with Win32
+            if command:
+                command += [f"--user-data-dir={status.root() / 'edge-profile'}", "--no-first-run", "--no-default-browser-check"]
+                POPUP = winpopup.Popup(url, command)
 
+    if pystray is None:
+        print("pintumcp: no system tray available; opening the panel window instead", file=sys.stderr)
+        open_panel()
+        threading.Event().wait()  # keep serving
+        return
     menu = pystray.Menu(
         pystray.MenuItem("Open Pintu", lambda: open_panel(), default=True),
         pystray.MenuItem("Mute for 1 hour", lambda: ACTIONS["mute"]()),
@@ -183,6 +199,11 @@ def main():
     if sys.platform.startswith("linux") and ("--open" in sys.argv or type(icon).__module__.endswith("_xorg")):
         # --open: launched from the app menu. The xorg backend means GNOME has no tray for us: show the panel so Pintu is still reachable.
         threading.Timer(1.5, open_panel).start()
+    if window is not None:  # pywebview needs the main thread; the tray icon runs beside it
+        import webview
+        icon.run_detached()
+        webview.start(POPUP.adopt)
+        os._exit(0)
     icon.run()
 
 
