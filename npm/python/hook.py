@@ -165,7 +165,8 @@ def main() -> None:
         agent = "Claude " + str(payload.get("session_id") or "")[:4]
         if result[0] == "gone":
             return status.remove(project, agent.strip())
-        status.update(result[0], result[1], project, agent.strip(), app=os.environ.get("__CFBundleIdentifier"), pid=owner_pid)
+        status.update(result[0], result[1], project, agent.strip(), app=os.environ.get("__CFBundleIdentifier"), pid=owner_pid,
+                      transcript=payload.get("transcript_path"))
         if result[0] in ("done", "approval", "question", "error"):
             import events
             events.deliver(result[0], result[1], project, agent.strip())

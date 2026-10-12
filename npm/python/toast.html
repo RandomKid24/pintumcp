@@ -49,7 +49,9 @@ setInterval(() => {
   drawPet(ctx, mode, now, st);
 }, 90);
 document.addEventListener("click", () => window.webkit?.messageHandlers?.pintu.postMessage({type: "toastclick", app}));
-if (!window.webkit) window.toast({title: "pintumcp · Agent 1: Task Complete", message: "47 tests pass. Ready to review.", face: "done"});
+const fromUrl = new URLSearchParams(location.search).get("t");
+if (fromUrl) { window.toast(JSON.parse(fromUrl)); setTimeout(() => window.toastOut(), 5300); }
+else if (!window.webkit) window.toast({title: "pintumcp · Agent 1: Task Complete", message: "47 tests pass. Ready to review.", face: "done"});
 </script>
 </body>
 </html>

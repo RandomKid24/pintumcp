@@ -254,7 +254,7 @@ def agent_history(project: str, agent: str, now: float | None = None, limit: int
 
 
 def update(state: str, message: str = "", project: str | None = None,
-           agent: str | None = None, app: str | None = None, now: float | None = None, pid=None) -> bool:
+           agent: str | None = None, app: str | None = None, now: float | None = None, pid=None, transcript: str | None = None) -> bool:
     """Record an agent's latest state. Returns False (never raises) if it could not.
 
     pid: the long-lived process behind this agent (an int, or a function that finds it, only called the
@@ -285,7 +285,8 @@ def update(state: str, message: str = "", project: str | None = None,
         pid = pid or old.get("pid")
         entry = {"project": project, "agent": agent, "state": state,
                  "message": " ".join(str(message).split())[:200], "since": since,
-                 "updated": now, "app": app, "took": took, "pid": pid}
+                 "updated": now, "app": app, "took": took, "pid": pid,
+                 "transcript": transcript or old.get("transcript")}
         tmp = path.with_suffix(f".{os.getpid()}.tmp")
         tmp.write_text(json.dumps(entry), encoding="utf-8")
         os.replace(tmp, path)  # atomic: the reader never sees half a file
@@ -296,6 +297,21 @@ def update(state: str, message: str = "", project: str | None = None,
         _touch_session(now)
         return True
     except OSError:
+        return False
+
+
+def _interrupted(item: dict) -> bool:
+    """Did the user press Esc? Claude Code fires no hook for that, but it writes a marker into the transcript."""
+    try:
+        path = Path(item["transcript"])
+        if path.stat().st_mtime <= item["updated"]:
+            return False  # nothing was written since our last update
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - 4096))
+            lines = f.read().decode("utf-8", "ignore").strip().splitlines()
+        return "[Request interrupted by user" in (lines[-1] if lines else "")
+    except (OSError, KeyError, TypeError):
         return False
 
 
@@ -321,6 +337,10 @@ def snapshot(now: float | None = None) -> list[dict]:
                 or (item.get("state") == "done" and age > FORGET_DONE_AFTER):
             path.unlink(missing_ok=True)
             continue
+        if item.get("state") in ("working", "approval", "question") and item.get("transcript") and _interrupted(item):
+            update("idle", "Stopped by you", item["project"], item["agent"], now=now)  # the user cancelled the turn
+            item.update(state="idle", message="Stopped by you", since=now, updated=now)
+            age = 0
         item["age"] = age
         item["in_state"] = now - item.get("since", item["updated"])
         item["stale"] = item["state"] == "working" and age > STALE_AFTER

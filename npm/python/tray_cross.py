@@ -85,6 +85,34 @@ class Handler(BaseHTTPRequestHandler):
         self._send(b"ok", "text/plain")
 
 
+TOAST_SECONDS = 6
+
+
+def screen_width() -> int:
+    try:
+        out = subprocess.run(["xrandr", "--current"], capture_output=True, text=True, timeout=2).stdout
+        return int(next(l for l in out.splitlines() if "*" in l).split()[0].split("x")[0])
+    except Exception:
+        return 1920
+
+
+def show_toast(toast: dict) -> None:
+    """Linux: Pintu's animated popup in a small Chromium app window; a plain notify-send if there is none."""
+    from urllib.parse import quote
+    url = f"http://127.0.0.1:{SERVER_PORT}/toast.html?t={quote(json.dumps(toast))}"
+    command = browser_app_command(url)
+    if command:
+        # own profile = own process, so we can close exactly this window; x is the top-right corner (ignored on pure Wayland)
+        command = command[:2] + ["--window-size=380,100", f"--window-position={max(0, screen_width() - 400)},40",
+                                 f"--user-data-dir={status.root() / 'toast-profile'}", "--no-first-run", "--no-default-browser-check"]
+        proc = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        threading.Timer(TOAST_SECONDS, proc.terminate).start()
+        return
+    import notifier
+    face = notifier.ICON_DIR / "faces" / f"{toast.get('face')}.png"
+    notifier._linux_notify(toast.get("title", ""), toast.get("message", ""), face if face.exists() else notifier.ICON_PATH)
+
+
 def browser_app_command(url: str):
     """Chrome/Edge in app mode (a bare window, no tabs), if one is installed."""
     names = ("msedge", "chrome", "google-chrome", "chromium", "chromium-browser", "microsoft-edge")
@@ -177,6 +205,9 @@ def main():
                 items = status.snapshot()
                 tray.stuck_alerts(items, stuck_seen)
                 tray.housekeeping()
+                if sys.platform.startswith("linux"):
+                    for toast in status.take_toasts()[-1:]:  # only the newest, never a pile of windows
+                        show_toast(toast)
                 new_state, badge = tray.bar_state(items)
                 if status.muted_until() and new_state in ("empty", "idle", "done"):
                     new_state = "muted"

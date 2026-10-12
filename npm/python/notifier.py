@@ -31,11 +31,10 @@ def _check_notification_backend() -> dict:
         detail = "terminal-notifier" if _terminal_notifier() else "JXA Notification Center (falls back to display notification)"
         return {"ready": ready, "detail": detail, "fix": "macOS includes osascript"}
     if SYSTEM == "Windows":
-        ready = importlib.util.find_spec("winotify") is not None
         return {
-            "ready": ready,
-            "detail": "winotify native toast",
-            "fix": "Run `pintumcp install` to install winotify.",
+            "ready": bool(shutil.which("powershell.exe") or shutil.which("powershell")),
+            "detail": "Windows toast through PowerShell",
+            "fix": "Windows PowerShell 5.1 ships with Windows; make sure powershell.exe is on PATH.",
         }
     if SYSTEM == "Linux":
         ready = bool(shutil.which("notify-send"))
@@ -228,23 +227,46 @@ def play_sound(sound_name: str = "default", volume: int = 80) -> bool:
     return False
 
 
-def _windows_notify(title: str, message: str, icon: Path = ICON_PATH) -> bool:
-    """Show a Windows toast; winotify is installed by the CLI on Windows."""
-    try:
-        from winotify import Notification
+def _windows_ps_script(title: str, message: str, icon: Path) -> str:
+    """PowerShell that shows a toast through the WinRT API (no extra module, no visible window)."""
+    from xml.sax.saxutils import escape, quoteattr
+    image = f'<image placement="appLogoOverride" src={quoteattr(str(icon))}/>' if icon.exists() else ""
+    xml = (f'<toast><visual><binding template="ToastGeneric">{image}<text>{escape(title)}</text>'
+           f'<text>{escape(message)}</text></binding></visual><audio silent="true"/></toast>')
+    return ("[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null\n"
+            "$x = New-Object Windows.Data.Xml.Dom.XmlDocument\n"
+            f"$x.LoadXml('{xml.replace(chr(39), chr(39) * 2)}')\n"
+            "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('pintumcp').Show("
+            "(New-Object Windows.UI.Notifications.ToastNotification $x))\n")
 
-        notification_args = {"app_id": "pintumcp", "title": title, "msg": message}
-        if icon.exists():
-            notification_args["icon"] = str(icon)
-        Notification(**notification_args).show()
-        return True
-    except (ImportError, OSError, RuntimeError) as error:
-        print(
-            "[pintumcp] Windows notifications require winotify; "
-            f"run `pintumcp install` to repair the installation ({error}).",
-            file=sys.stderr,
+
+def _windows_register_app(icon: Path) -> None:
+    """Windows 10/11 only reliably shows toasts for a registered app id; this names it Pintu with his icon."""
+    import winreg
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\Classes\AppUserModelId\pintumcp") as key:
+        winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, "Pintu")
+        winreg.SetValueEx(key, "IconUri", 0, winreg.REG_SZ, str(icon))
+
+
+def _windows_notify(title: str, message: str, icon: Path = ICON_PATH) -> bool:
+    """Show a Windows toast with a hidden PowerShell (CREATE_NO_WINDOW, so no console flashes)."""
+    try:
+        import base64
+        try:
+            _windows_register_app(ICON_PATH)
+        except (OSError, ImportError):
+            pass
+        encoded = base64.b64encode(_windows_ps_script(title, message, icon).encode("utf-16-le")).decode()
+        run = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded],
+            capture_output=True, text=True, timeout=20, creationflags=0x08000000,
         )
-        return False
+        if run.returncode == 0:
+            return True
+        print(f"[pintumcp] Windows notification error: {run.stderr.strip()[:300]}", file=sys.stderr)
+    except (OSError, subprocess.SubprocessError) as error:
+        print(f"[pintumcp] Windows notification error: {error}", file=sys.stderr)
+    return False
 
 
 def _linux_notify(title: str, message: str, icon: Path = ICON_PATH) -> bool:
@@ -296,6 +318,8 @@ def send_notification(
     if not get("notification_enabled", True):
         result["notification"] = False
     elif SYSTEM == "Darwin" and get("toast_enabled", True) and _toast(title, message, icon):
+        result["notification"] = True  # the tray app shows it as an animated Pintu popup
+    elif SYSTEM == "Linux" and get("toast_enabled", True) and _toast(title, message, icon):
         result["notification"] = True  # the tray app shows it as an animated Pintu popup
     elif SYSTEM == "Darwin":
         result["notification"] = _macos_notify(title, message, icon)
