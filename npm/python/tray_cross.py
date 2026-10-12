@@ -75,7 +75,8 @@ class Handler(BaseHTTPRequestHandler):
                 if tray.agent_key(item) == key:
                     status.remove(item["project"], item["agent"])
         if name == "size" and POPUP:
-            POPUP.resize(int(parse_qs(url.query).get("h", ["720"])[0]))
+            q = parse_qs(url.query)
+            POPUP.resize(int(q.get("h", ["720"])[0]), int(q.get("w", ["0"])[0]))
         if name in ACTIONS:
             ACTIONS[name]()
         self._send(b"ok", "text/plain")

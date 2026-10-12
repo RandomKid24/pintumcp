@@ -357,8 +357,9 @@ def describe(item: dict) -> dict:
 def today_stats(now: float | None = None, hours: int = 12) -> dict:
     """Numbers for the Today card, from history.jsonl: finished, errors, hourly trend, longest run."""
     now = time.time() if now is None else now
-    day_start = now - 24 * 3600
-    events = [e for e in _all_events() if e.get("updated", 0) >= day_start]
+    import datetime as dt
+    day_start = dt.datetime.fromtimestamp(now).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()  # local midnight
+    events = [e for e in _all_events() if e.get("updated", 0) >= now - 24 * 3600]
     events.sort(key=lambda e: e["updated"])
     trend = [0] * hours
     err_trend = [0] * hours
@@ -371,19 +372,26 @@ def today_stats(now: float | None = None, hours: int = 12) -> dict:
             started.setdefault(key, e["updated"])
         elif key in started:
             longest = max(longest, e["updated"] - started.pop(key))
+        bucket = int((now - e["updated"]) // 3600)
         if e["state"] == "done":
-            done += 1
-            bucket = int((now - e["updated"]) // 3600)
+            done += e["updated"] >= day_start
             if bucket < hours:
                 trend[hours - 1 - bucket] += 1
         elif e["state"] == "error":
-            errors += 1
-            bucket = int((now - e["updated"]) // 3600)
+            errors += e["updated"] >= day_start
             if bucket < hours:
                 err_trend[hours - 1 - bucket] += 1
     for t in started.values():
-        longest = max(longest, now - t)  # still running
-    return {"done": done, "errors": errors, "trend": trend, "err_trend": err_trend, "longest": format_age(longest) if longest else "-"}
+        if now - t < FORGET_WORKING_AFTER:  # still running; an old start with no end was a session that just closed
+            longest = max(longest, now - t)
+    days = load_profile()["days"]
+    days7 = []
+    for back in range(6, -1, -1):
+        d = dt.date.fromtimestamp(now) - dt.timedelta(days=back)
+        c = days.get(d.isoformat(), {})
+        days7.append({"date": d.isoformat(), "done": c.get("done", 0), "errors": c.get("errors", 0)})
+    return {"done": int(done), "errors": int(errors), "trend": trend, "err_trend": err_trend, "days7": days7,
+            "longest": format_age(longest) if longest else "-"}
 
 
 # ---- mute, tray heartbeat and toast hand-off (small files, same no-daemon style as the agent rows)

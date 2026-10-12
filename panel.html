@@ -75,6 +75,21 @@
   .timeline { padding: 2px 10px 8px 56px; font-size: 11px; color: var(--muted); }
   .timeline div { display: flex; gap: 6px; padding: 1px 0; } .timeline i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); margin-top: 4px; flex: none; }
   .timeline span:first-of-type { flex: 1; color: var(--text); }
+  /* layouts: the panel is a grid, so vertical and horizontal are just different areas */
+  .panel { display: grid; grid-template-columns: minmax(0, 1fr);
+           grid-template-areas: "head" "xp" "set" "ban" "hero" "frnd" "stat" "agents" "today" "act" "foot"; }
+  header { grid-area: head; } #xp { grid-area: xp; } .settings { grid-area: set; } .banner { grid-area: ban; } .hero { grid-area: hero; }
+  .friends { grid-area: frnd; } .grid { grid-area: stat; } #agents { grid-area: agents; } #today { grid-area: today; } .actions { grid-area: act; } footer { grid-area: foot; }
+  body.layout-h .panel { width: 760px; column-gap: 12px; align-content: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "head head" "xp xp" "set set" "ban ban" "hero agents" "frnd agents" "stat agents" "today agents" "act act" "foot foot"; }
+  body.layout-h .agents { max-height: none; }
+  body.layout-h.live .panel { width: 100%; }
+  body.size-small { zoom: .88; } body.size-large { zoom: 1.15; }
+  body.no-anim .panel { animation: none; }
+  body.no-hero .hero, body.no-xp #xp, body.no-friends .friends, body.no-stats .grid, body.no-agents #agents, body.no-today #today, body.no-actions .actions { display: none !important; }
+  .settings { max-height: 560px; overflow-y: auto; scrollbar-width: none; }
+  .set-h { margin: 10px 0 2px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .gear { background: var(--card); border: 0; color: var(--muted); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
   .gear:hover { background: var(--card-2); color: var(--text); }
   .settings { display: none; margin-bottom: 8px; }
@@ -132,6 +147,23 @@
 
   <div class="card settings" id="settings">
     <h2>Settings</h2>
+    <div class="set-h">Look</div>
+    <label class="set"><span>Layout</span><select id="s-layout" data-str="1"><option value="vertical">Vertical</option><option value="horizontal">Horizontal (wide)</option></select></label>
+    <label class="set"><span>Size</span><select id="s-size" data-str="1"><option value="small">Small</option><option value="normal">Normal</option><option value="large">Large</option></select></label>
+    <label class="set"><span>Theme</span><select id="s-theme" data-str="1"><option value="dark">Dark</option><option value="light">Light</option><option value="pastel">Pastel</option><option value="hacker">Hacker</option></select></label>
+    <label class="set"><span>Chart shows</span><select id="s-chart" data-str="1"><option value="hours">Last 12 hours</option><option value="days">Last 7 days</option></select></label>
+    <label class="set"><span>Agent rows before scrolling</span><select id="s-rows"><option value="3">3</option><option value="5">5</option><option value="8">8</option><option value="0">All</option></select></label>
+    <label class="set"><span>Hide finished agents</span><input type="checkbox" id="s-hidedone"></label>
+    <label class="set"><span>Animations</span><input type="checkbox" id="s-anim"></label>
+    <div class="set-h">Show these parts</div>
+    <label class="set"><span>Pintu card</span><input type="checkbox" class="sec" data-sec="hero"></label>
+    <label class="set"><span>Level bar</span><input type="checkbox" class="sec" data-sec="xp"></label>
+    <label class="set"><span>Friends row</span><input type="checkbox" class="sec" data-sec="friends"></label>
+    <label class="set"><span>Needs you / Working cards</span><input type="checkbox" class="sec" data-sec="stats"></label>
+    <label class="set"><span>Agent list</span><input type="checkbox" class="sec" data-sec="agents"></label>
+    <label class="set"><span>Chart</span><input type="checkbox" class="sec" data-sec="today"></label>
+    <label class="set"><span>Buttons</span><input type="checkbox" class="sec" data-sec="actions"></label>
+    <div class="set-h">Alerts</div>
     <label class="set"><span>Volume</span><input type="range" min="0" max="100" id="s-volume"><b id="s-volume-n"></b></label>
     <label class="set"><span>Sound</span><input type="checkbox" id="s-sound"></label>
     <label class="set"><span>Notifications</span><input type="checkbox" id="s-notify"></label>
@@ -140,7 +172,6 @@
     <label class="set"><span>Skip "done" while the agent's app is focused</span><input type="checkbox" id="s-focus"></label>
     <label class="set"><span>Quiet hours</span><input type="checkbox" id="s-quiet"></label>
     <div class="set sub" id="s-quiet-times"><span>From</span><input type="time" id="s-qs"><span>to</span><input type="time" id="s-qe"></div>
-    <label class="set"><span>Theme</span><select id="s-theme" data-str="1"><option value="dark">Dark</option><option value="light">Light</option><option value="pastel">Pastel</option><option value="hacker">Hacker</option></select></label>
     <label class="set"><span>Pintu speaks out loud</span><input type="checkbox" id="s-voice"></label>
     <label class="set"><span>Robot voice</span><input type="checkbox" id="s-funny"></label>
     <label class="set"><span>Break reminder</span><input type="checkbox" id="s-break"></label>
@@ -210,6 +241,16 @@ function timeline(a) {                       // what this agent did lately, newe
   const rows = (a.history || []).map((h) => `<div style="--c:${COLOR[h.state] || COLOR.idle}"><i></i><span>${LABEL[h.state] || h.state}</span><span>${span(h.dur)}</span><span>${at(h.at)}</span></div>`).join("");
   return `<div class="timeline">${rows || "No history yet."}</div>`;
 }
+function applyLook(s) {                      // layout, size, which parts show, list length, animations
+  const b = document.body.classList, sec = s.sections || {};
+  b.toggle("layout-h", s.layout === "horizontal");
+  b.toggle("size-small", s.size === "small"); b.toggle("size-large", s.size === "large");
+  b.toggle("no-anim", s.animations === false);
+  for (const k of ["hero", "xp", "friends", "stats", "agents", "today", "actions"]) b.toggle("no-" + k, sec[k] === false);
+  const rows = s.agent_rows === undefined ? 5 : s.agent_rows;
+  $("agents").style.maxHeight = rows && s.layout !== "horizontal" ? `${rows * 54 + 40}px` : "none";
+  pet.still = s.animations === false;
+}
 function renderBanner(data, prog) {
   const rows = [];
   if (prog.break_until > data.now) rows.push(`<div><span>Break time. Back in <b data-until="${prog.break_until - (Date.now() / 1000 - skew)}">${clock(prog.break_until - data.now)}</b></span></div>`);
@@ -257,6 +298,7 @@ function render(data) {
   pet.level = prog.level; pet.mood = prog.mood; pet.prog = prog; pet.sessionMin = prog.session_minutes;
   pet.worn = [prog.level >= 3 && "scarf", prog.level >= 6 && "crown", prog.level >= 10 && "cape"].filter(Boolean);
   pet.onBreak = prog.break_until > data.now;
+  applyLook(data.settings || {});
   const theme = (data.settings || {}).theme || "dark";
   document.body.dataset.theme = theme;
   pet.body = {pastel: "#ff9eb5", hacker: "#39ff6a"}[theme]; pet.shade = {pastel: "#e0708f", hacker: "#1fb347"}[theme];
@@ -281,11 +323,12 @@ function render(data) {
     <div class="big">${working.length}<small>agent${working.length === 1 ? "" : "s"}</small></div>
     <div class="sub">${working.length ? `Longest run <span data-since="${now() - longest}">${clock(longest)}</span>` : "Nothing running"}</div>`;
 
-  if (!agents.length) {
+  const shown = (data.settings || {}).hide_done ? agents.filter((a) => !["done", "idle"].includes(a.state)) : agents;
+  if (!shown.length) {
     $("agents").innerHTML = `<div class="empty"><img src="assets/pet/empty.gif" alt="">No agents yet.<br>
       Ask an agent to call <code>agent_working</code>, or run <code>pintumcp hooks install</code>.</div>`;
   } else {
-    $("agents").innerHTML = `<h2>Agents</h2>` + agents.map((a) => `
+    $("agents").innerHTML = `<h2>Agents</h2>` + shown.map((a) => `
       <div class="item" style="--c:${COLOR[a.state] || COLOR.idle}"><div class="row" data-key="${esc(a.key)}">
         <button class="tl" data-tl="${esc(a.key)}" title="Show timeline" aria-label="Timeline">&#9719;</button>
         <button class="x" data-rm="${esc(a.key)}" title="Remove this agent from the list" aria-label="Remove">×</button>
@@ -302,11 +345,15 @@ function render(data) {
   }
 
   if (!barsHover) {                          // keep the chart steady while the pointer is on it
-    const t = data.today, peak = Math.max(1, ...t.trend);
-    $("today").innerHTML = `<div class="top"><h2>Today</h2>
-        <div class="stat"><b>${t.done}</b> done &nbsp;·&nbsp; <b style="color:${t.errors ? "var(--error)" : "inherit"}">${t.errors}</b> error${t.errors === 1 ? "" : "s"}</div></div>
-      <div class="bars" id="bars">${t.trend.map((n, i) => `<i data-i="${i}" class="${n ? "" : "zero"}" style="height:${n ? Math.max(14, n / peak * 100) : 8}%"></i>`).join("")}<div class="tip" id="tip"></div></div>
-      <div class="axis"><span>${t.trend.length}h ago</span><span id="axis-mid">Longest run ${esc(t.longest)}</span><span>now</span></div>`;
+    const t = data.today, days = (data.settings || {}).chart_range === "days";
+    const series = days ? t.days7.map((d) => d.done) : t.trend, peak = Math.max(1, ...series);
+    const hr = (s) => new Date(s * 1000).toLocaleTimeString([], {hour: "numeric"});
+    const left = days ? "7 days ago" : hr(data.now - series.length * 3600);
+    $("today").innerHTML = `<div class="top"><h2>Tasks finished</h2>
+        <div class="stat"><b>${t.done}</b> done today &nbsp;·&nbsp; <b style="color:${t.errors ? "var(--error)" : "inherit"}">${t.errors}</b> error${t.errors === 1 ? "" : "s"}</div></div>
+      <div class="sub" style="margin-top:2px">${days ? "Per day, last 7 days" : "Per hour, last 12 hours"}. Hover a bar.</div>
+      <div class="bars" id="bars">${series.map((n, i) => `<i data-i="${i}" class="${n ? "" : "zero"}" style="height:${n ? Math.max(14, n / peak * 100) : 8}%"></i>`).join("")}<div class="tip" id="tip"></div></div>
+      <div class="axis"><span>${left}</span><span id="axis-mid">Longest run today ${esc(t.longest)}</span><span>now</span></div>`;
     $("bars").onmousemove = (e) => hoverBar(e, data);
     $("bars").onmouseleave = () => hoverBar(null, data);
   }
@@ -333,18 +380,24 @@ document.querySelector(".actions").addEventListener("click", (e) => { const b = 
 
 let barsHover = false;
 function hoverBar(e, data) {
-  barsHover = !!(e && e.target.closest("i"));                // tooltip for the Today chart: hour range, finished and errors
-  const tip = $("tip"), bar = e && e.target.closest("i");
+  barsHover = !!(e && e.target.closest("i"));                // tooltip for the chart: the period, finished and errors
+  const tip = $("tip"), bar = e && e.target.closest("i"), t = data.today, days = (data.settings || {}).chart_range === "days";
   document.querySelectorAll("#bars i").forEach((b) => { b.style.outline = b === bar ? "1px solid rgba(255,255,255,.35)" : ""; });
-  if (!bar) { tip.style.display = "none"; $("axis-mid").textContent = `Longest run ${data.today.longest}`; return; }
-  const i = +bar.dataset.i, n = data.today.trend.length, t = data.today;
-  const fmt = (s) => new Date(s * 1000).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
-  const end = data.now - (n - 1 - i) * 3600, errs = (t.err_trend || [])[i] || 0;
-  tip.innerHTML = `<b>${t.trend[i]} done</b>${errs ? ` <span>·</span> <b style="color:var(--error)">${errs} error${errs === 1 ? "" : "s"}</b>` : ""}<br><span>${fmt(end - 3600)} – ${fmt(end)}</span>`;
+  if (!bar) { tip.style.display = "none"; $("axis-mid").textContent = `Longest run today ${data.today.longest}`; return; }
+  const i = +bar.dataset.i;
+  let done, errs, label;
+  if (days) {
+    const d = t.days7[i]; done = d.done; errs = d.errors;
+    label = new Date(d.date + "T12:00:00").toLocaleDateString([], {weekday: "short", month: "short", day: "numeric"});
+  } else {
+    const n = t.trend.length, end = data.now - (n - 1 - i) * 3600, fmt = (s) => new Date(s * 1000).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+    done = t.trend[i]; errs = (t.err_trend || [])[i] || 0; label = `${fmt(end - 3600)} – ${fmt(end)}`;
+  }
+  tip.innerHTML = `<b>${done} done</b>${errs ? ` <span>·</span> <b style="color:var(--error)">${errs} error${errs === 1 ? "" : "s"}</b>` : ""}<br><span>${label}</span>`;
   tip.style.display = "block";
   const box = $("bars").getBoundingClientRect(), r = bar.getBoundingClientRect();
   tip.style.left = Math.min(Math.max(r.left - box.left + r.width / 2, 60), box.width - 60) + "px";
-  $("axis-mid").textContent = `${fmt(end - 3600)} – ${fmt(end)}: ${t.trend[i]} done`;
+  $("axis-mid").textContent = `${label}: ${done} done`;
 }
 
 // Pintu's one-liners: a pool built from everything we know right now, rotated every few seconds.
@@ -444,7 +497,8 @@ function drawFriends(now) {
   }
 }
 function petTick() {
-  if (!active) return;
+  if (!active || (pet.still && performance.now() - (pet.lastDraw || 0) < 1000)) return;
+  pet.lastDraw = performance.now();
   const now = performance.now();
   if (now > pet.blinkAt + 140 && Math.random() < 0.02) pet.blinkAt = now;                    // blink now and then
   if (now > pet.lookAt && !pet.cursor) { pet.look = pick([-1, 0, 0, 1]); pet.lookAt = now + 1500 + Math.random() * 2500; }
@@ -480,17 +534,21 @@ say.pin = (text, ms) => {
 let settings = {};
 const SET = {volume: "s-volume", sound_enabled: "s-sound", notification_enabled: "s-notify", toast_enabled: "s-toast",
              stuck_alerts: "s-stuck", mute_when_focused: "s-focus", mute_minutes: "s-mute", theme: "s-theme",
-             voice_enabled: "s-voice", voice_funny: "s-funny", break_reminder: "s-break", break_minutes: "s-breakmin"};
+             voice_enabled: "s-voice", voice_funny: "s-funny", break_reminder: "s-break", break_minutes: "s-breakmin",
+             layout: "s-layout", size: "s-size", chart_range: "s-chart", agent_rows: "s-rows", hide_done: "s-hidedone", animations: "s-anim"};
 function fillSettings() {
   const s = settings, q = s.quiet_hours;
   for (const [k, id] of Object.entries(SET)) { const el = $(id); if (el.type === "checkbox") el.checked = !!s[k]; else el.value = s[k] ?? el.value; }
   $("s-volume-n").textContent = $("s-volume").value;
+  document.querySelectorAll(".sec").forEach((el) => { el.checked = (s.sections || {})[el.dataset.sec] !== false; });
   $("s-quiet").checked = !!q; $("s-qs").value = q ? q.start : "22:00"; $("s-qe").value = q ? q.end : "08:00";
   $("s-quiet-times").style.display = q ? "flex" : "none";
 }
 function saveSettings() {
   const v = {};
   for (const [k, id] of Object.entries(SET)) { const el = $(id); v[k] = el.type === "checkbox" ? el.checked : el.dataset.str ? el.value : +el.value; }
+  v.sections = {};
+  document.querySelectorAll(".sec").forEach((el) => { v.sections[el.dataset.sec] = el.checked; });
   v.quiet_hours = $("s-quiet").checked ? {start: $("s-qs").value || "22:00", end: $("s-qe").value || "08:00"} : null;
   $("s-volume-n").textContent = v.volume; $("s-quiet-times").style.display = v.quiet_hours ? "flex" : "none";
   post({type: "settings", json: JSON.stringify(v)});
@@ -504,13 +562,13 @@ $("settings").addEventListener("input", (e) => { if (e.target.id === "s-volume")
 const _render = render;
 render = (data) => { if (!document.body.classList.contains("settings-open")) settings = data.settings || settings; _render(data); };
 
-new ResizeObserver(() => post({type: "size", height: $("panel").offsetHeight})).observe($("panel"));
+new ResizeObserver(() => { const r = $("panel").getBoundingClientRect(); post({type: "size", height: r.height, width: r.width}); }).observe($("panel"));
 const LIVE = !window.webkit && location.search.includes("live");     // Windows/Linux tray: same page in an app window
 if (LIVE) {
   document.body.classList.add("live");
   const token = new URLSearchParams(location.search).get("t");
   post = (msg) => {
-    if (msg.type === "size") fetch(`/act/size?h=${Math.ceil(msg.height) + 2}&t=${token}`, {method: "POST"});
+    if (msg.type === "size") fetch(`/act/size?h=${Math.ceil(msg.height) + 2}&w=${Math.ceil(msg.width)}&t=${token}`, {method: "POST"});
     else if (["clear", "doctor", "mute", "quit", "remove_stale", "break", "update"].includes(msg.type)) fetch(`/act/${msg.type}?t=${token}`, {method: "POST"});
     else if (msg.type === "settings") fetch(`/act/settings?t=${token}`, {method: "POST", body: msg.json});
     else if (msg.type === "remove") fetch(`/act/remove?t=${token}&key=${encodeURIComponent(msg.key)}`, {method: "POST"});
@@ -529,7 +587,7 @@ if (!window.webkit && !LIVE) {                      // browser preview with samp
     A("API · Agent 1", "working", "Editing auth.py", 252, 40, {history: [{state: "working", at: t - 252, dur: 252}, {state: "done", at: t - 900, dur: 120}, {state: "working", at: t - 1500, dur: 600}]}),
     A("Docs · Agent 1", "done", "47 tests pass. Ready to review.", 600, 600, {took: 252}),
     A("Infra · Agent 1", "working", "Migrating the staging database", 1260, 780, {stale: true}),
-  ], progress: {xp: 310, level: 4, level_xp: 225, next_xp: 400, streak: 3, best_streak: 5, mood: "proud", yesterday: {done: 9, errors: 1}, today: {done: 12, errors: 2}, session_minutes: 56, break_until: 0}, update: {latest: "9.9.9", current: "1.2.13"}, settings: {theme: "dark", volume: 80, break_minutes: 50, break_reminder: true, mute_minutes: 60}, today: {done: 12, errors: 2, trend: [0, 1, 0, 2, 1, 3, 0, 1, 2, 1, 0, 1], err_trend: [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0], longest: "1h 12m"}});
+  ], progress: {xp: 310, level: 4, level_xp: 225, next_xp: 400, streak: 3, best_streak: 5, mood: "proud", yesterday: {done: 9, errors: 1}, today: {done: 12, errors: 2}, session_minutes: 56, break_until: 0}, update: {latest: "9.9.9", current: "1.2.13"}, settings: {theme: "dark", volume: 80, break_minutes: 50, break_reminder: true, mute_minutes: 60}, today: {done: 12, errors: 2, trend: [0, 1, 0, 2, 1, 3, 0, 1, 2, 1, 0, 1], err_trend: [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0], days7: [{date:"2026-10-06",done:4,errors:0},{date:"2026-10-07",done:9,errors:1},{date:"2026-10-08",done:0,errors:0},{date:"2026-10-09",done:14,errors:2},{date:"2026-10-10",done:3,errors:0},{date:"2026-10-11",done:7,errors:0},{date:"2026-10-12",done:12,errors:2}], longest: "1h 12m"}});
 }
 </script>
 </body>

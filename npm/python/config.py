@@ -24,12 +24,20 @@ DEFAULTS = {
     "voice_funny": False,      # robot voice
     "break_reminder": True,    # nudge after a long work session
     "break_minutes": 50,
+    # Look of the panel
+    "layout": "vertical",      # vertical | horizontal
+    "size": "normal",          # small | normal | large
+    "sections": {"hero": True, "xp": True, "friends": True, "stats": True, "agents": True, "today": True, "actions": True},
+    "agent_rows": 5,           # rows shown before the list scrolls (0 = all)
+    "hide_done": False,        # leave finished agents out of the list
+    "chart_range": "hours",    # hours | days
+    "animations": True,
 }
 
 # Panel-editable keys; they live in ~/.pintumcp/settings.json so package updates never wipe them
 USER_KEYS = ("volume", "sound_enabled", "notification_enabled", "toast_enabled", "stuck_alerts",
              "quiet_hours", "mute_when_focused", "mute_minutes", "theme", "voice_enabled", "voice_funny",
-             "break_reminder", "break_minutes")
+             "break_reminder", "break_minutes", "layout", "size", "sections", "agent_rows", "hide_done", "chart_range", "animations")
 
 _config: dict | None = None
 _stamp = None  # (mtime of config.json, mtime of settings.json) the cache was built from
@@ -66,6 +74,17 @@ def save_user(values: dict) -> dict:
             value = max(5, min(int(value), 24 * 60))
         elif key == "break_minutes":
             value = max(10, min(int(value), 240))
+        elif key == "layout":
+            value = value if value in ("vertical", "horizontal") else "vertical"
+        elif key == "size":
+            value = value if value in ("small", "normal", "large") else "normal"
+        elif key == "chart_range":
+            value = value if value in ("hours", "days") else "hours"
+        elif key == "agent_rows":
+            value = max(0, min(int(value), 20))
+        elif key == "sections":
+            names = DEFAULTS["sections"]
+            value = {k: bool(value.get(k, names[k])) for k in names} if isinstance(value, dict) else dict(names)
         elif key == "theme":
             value = value if value in ("dark", "light", "pastel", "hacker") else "dark"
         elif key == "quiet_hours":

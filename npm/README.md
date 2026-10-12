@@ -230,6 +230,8 @@ The menu-bar icon itself is animated. It shows the most urgent agent's face (wit
 - **Voice:** Pintu can say a short line out loud with each alert (off by default; turn it on in Settings, with an optional robot voice).
 - **Themes:** dark, light, pastel and hacker; Pintu changes colour to match.
 - **Update notice:** the panel tells you when a new version is out and has an **Update now** button.
+- **Make the panel yours (Settings):** vertical or horizontal (wide) layout, small / normal / large size, theme, and switches to show or hide each part (Pintu card, level bar, friends, Needs/Working cards, agent list, chart, buttons). Also how many agent rows show before scrolling, hiding finished agents, the chart range (last 12 hours or last 7 days) and turning animations off.
+- **The chart** counts finished tasks: one bar per hour for the last 12 hours (or per day for 7 days). "done today" counts since midnight. Hover a bar for the exact period.
 - **Settings (gear in the panel):** volume, sound, notifications, the animated popup, "maybe stuck?" alerts, quiet hours, how long Mute lasts, and "skip done while the agent's app is focused". Changes apply instantly to every running agent and are kept in `~/.pintumcp/settings.json`, so updates never reset them.
 - **Remove an agent by hand:** hover a row and click the **×**, or click **remove** on a "quiet, maybe stuck?" row. Settings has "Remove all stale agents".
 - **Ubuntu / GNOME:** Pintu shows in the top bar through AppIndicator (left-click opens its menu, then "Open Pintu"). The installer also adds a **Pintu** entry to your app menu, and if GNOME has no tray it opens the panel window for you, so you can always reach it. Only one Pintu runs per user.

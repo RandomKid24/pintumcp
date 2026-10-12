@@ -37,7 +37,7 @@ def _scale() -> float:
 class Popup:
     def __init__(self, url: str, browser_command):
         self.url, self.command = url, browser_command
-        self.hwnd, self.proc, self.height = 0, None, 720
+        self.hwnd, self.proc, self.height, self.width = 0, None, 720, WIDTH
         self.shown_at = self.hidden_at = 0.0
         self.lock = threading.Lock()
         threading.Thread(target=self._watch, daemon=True).start()
@@ -69,7 +69,7 @@ class Popup:
         rect = wt.RECT()
         user32.SystemParametersInfoW(0x30, 0, ctypes.byref(rect), 0)  # work area (excludes the taskbar)
         k = _scale()
-        w, h = int(WIDTH * k), min(int(self.height * k), rect.bottom - rect.top - 2 * MARGIN)
+        w, h = int(self.width * k), min(int(self.height * k), rect.bottom - rect.top - 2 * MARGIN)
         user32.SetWindowPos(self.hwnd, HWND_TOPMOST, rect.right - w - MARGIN, rect.bottom - h - MARGIN, w, h,
                             SWP_FRAMECHANGED | SWP_NOACTIVATE)
 
@@ -105,8 +105,9 @@ class Popup:
         user32.ShowWindow(self.hwnd, SW_HIDE)
         self.hidden_at = time.time()
 
-    def resize(self, height: int) -> None:
+    def resize(self, height: int, width: int = 0) -> None:
         self.height = max(240, min(int(height), 900))
+        self.width = max(300, min(int(width or self.width), 1100))
         if self._visible():
             self._place()
 

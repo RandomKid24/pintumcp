@@ -194,6 +194,7 @@ def main() -> None:
         def applicationDidFinishLaunching_(self, _note):
             self.items = []
             self.height = 600
+            self.width = WIDTH
             self.last_icon = None
             self.shown_at = 0.0
             self.hiding = False
@@ -290,8 +291,8 @@ def main() -> None:
         def show(self):
             frame = self.item.button().window().frame()
             screen = NSScreen.mainScreen().frame()
-            x = min(max(frame.origin.x + frame.size.width / 2 - WIDTH / 2, 8), screen.size.width - WIDTH - 8)
-            self.win.setFrame_display_(NSMakeRect(x, frame.origin.y - self.height - 6, WIDTH, self.height), True)
+            x = min(max(frame.origin.x + frame.size.width / 2 - self.width / 2, 8), screen.size.width - self.width - 8)
+            self.win.setFrame_display_(NSMakeRect(x, frame.origin.y - self.height - 6, self.width, self.height), True)
             self.hiding = False
             self.shown_at = time.time()
             self.web.evaluateJavaScript_completionHandler_("window.opening && window.opening()", None)
@@ -313,11 +314,12 @@ def main() -> None:
                 self.web.evaluateJavaScript_completionHandler_("window.setActive && window.setActive(false)", None)
 
         @objc.python_method
-        def resize(self, height):
-            self.height = max(200, min(int(height), 820))
+        def resize(self, height, width=None):
+            self.height = max(200, min(int(height), 900))
+            self.width = max(300, min(int(width or self.width), 1000))
             if self.win.isVisible():
                 top = self.win.frame().origin.y + self.win.frame().size.height
-                self.win.setFrame_display_(NSMakeRect(self.win.frame().origin.x, top - self.height, WIDTH, self.height), True)
+                self.win.setFrame_display_(NSMakeRect(self.win.frame().origin.x, top - self.height, self.width, self.height), True)
                 self.win.invalidateShadow()
 
         # ---- data
@@ -378,7 +380,7 @@ def main() -> None:
             body = message.body()
             kind = body.get("type")
             if kind == "size":
-                self.resize(body.get("height", self.height))
+                self.resize(body.get("height", self.height), body.get("width"))
             elif kind == "focus":
                 for item in self.items:
                     if agent_key(item) == body.get("key") and item.get("app"):
