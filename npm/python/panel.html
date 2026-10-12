@@ -91,13 +91,15 @@
   body.layout-h.live .panel { width: 100%; }
   body.no-anim .panel { animation: none; }
   body.no-hero .hero, body.no-xp #xp, body.no-friends .friends, body.no-stats .grid, body.no-agents #agents, body.no-today #today, body.no-actions .actions { display: none !important; }
-  .settings { max-height: 560px; overflow-y: auto; scrollbar-width: none; }
+  .settings { scrollbar-width: none; }
   .set-h { margin: 10px 0 2px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .gear { background: var(--card); border: 0; color: var(--muted); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
   .gear:hover { background: var(--card-2); color: var(--text); }
-  .settings { display: none; margin-bottom: 8px; }
-  body.settings-open .settings { display: block; }
-  body.settings-open .hero, body.settings-open .grid, body.settings-open #agents, body.settings-open #today, body.settings-open .actions { display: none; }
+  .panel { position: relative; min-height: 420px; }
+  .settings { display: none; }
+  body.settings-open .settings { display: block; position: absolute; grid-area: 1 / 1 / -1 / -1; z-index: 6; inset: 44px 8px 8px; margin: 0 !important; background: var(--bg); max-height: none; overflow-y: auto; }
+  body.settings-open .hero, body.settings-open .grid, body.settings-open #agents, body.settings-open #today, body.settings-open .actions,
+  body.settings-open .friends, body.settings-open .banner, body.settings-open footer, body.settings-open #xp { visibility: hidden; }
   .set { display: flex; align-items: center; gap: 8px; padding: 7px 2px; font-size: 12.5px; border-top: 1px solid var(--line); }
   .set:first-of-type { border-top: 0; }
   .set > span:first-child { flex: 1; } .set i { color: var(--muted); font-style: normal; }
@@ -144,8 +146,6 @@
   <header>
     <h1>Pintu</h1>
     <span class="chip" id="count">0 agents</span>
-    <button class="gear" id="zoom-out" aria-label="Smaller" title="Smaller"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
-    <button class="gear" id="zoom-in" aria-label="Bigger" title="Bigger"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
     <button class="gear" id="gear" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
   <div class="xp" id="xp"></div>
@@ -154,7 +154,6 @@
     <h2>Settings</h2>
     <div class="set-h">Look</div>
     <label class="set"><span>Layout</span><select id="s-layout" data-str="1"><option value="vertical">Vertical</option><option value="horizontal">Horizontal (wide)</option></select></label>
-    <label class="set"><span>Size</span><input type="range" min="70" max="150" step="5" id="s-zoom"><b id="s-zoom-n"></b></label>
     <label class="set"><span>Theme</span><select id="s-theme" data-str="1"><option value="dark">Dark</option><option value="light">Light</option><option value="pastel">Pastel</option><option value="hacker">Hacker</option></select></label>
     <label class="set"><span>Chart shows</span><select id="s-chart" data-str="1"><option value="hours">Last 12 hours</option><option value="days">Last 7 days</option></select></label>
     <label class="set"><span>Agent rows before scrolling</span><select id="s-rows"><option value="3">3</option><option value="5">5</option><option value="8">8</option><option value="0">All</option></select></label>
@@ -246,29 +245,12 @@ function timeline(a) {                       // what this agent did lately, newe
   const rows = (a.history || []).map((h) => `<div style="--c:${COLOR[h.state] || COLOR.idle}"><i></i><span>${LABEL[h.state] || h.state}</span><span>${span(h.dur)}</span><span>${at(h.at)}</span></div>`).join("");
   return `<div class="timeline">${rows || "No history yet."}</div>`;
 }
-let lookReady = false, zoomNow = 1, zoomTarget = 1, zoomRaf = 0, zoomLock = 0;
-function setZoom(target) {                   // ease the panel to a new size; the window follows through the size messages
-  cancelAnimationFrame(zoomRaf);
-  const from = zoomNow, t0 = performance.now(), dur = 240;
-  const step = (t) => {
-    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-    zoomNow = from + (target - from) * e; document.body.style.zoom = zoomNow;
-    zoomRaf = k < 1 ? requestAnimationFrame(step) : 0;
-  };
-  step(t0);
-}
-function nudgeZoom(delta) {
-  zoomTarget = Math.round(Math.max(0.7, Math.min(1.5, zoomTarget + delta)) * 100) / 100;
-  zoomLock = performance.now() + 2500; setZoom(zoomTarget);
-  settings.zoom = zoomTarget; post({type: "settings", json: JSON.stringify({zoom: zoomTarget})});
-}
+let lookReady = false;
 function applyLook(s) {                      // layout, size, which parts show, list length, animations
   const b = document.body.classList, sec = s.sections || {};
   const horizontal = s.layout === "horizontal";
   if (b.contains("layout-h") !== horizontal) { b.toggle("layout-h", horizontal); if (window.opening && lookReady) window.opening(); }   // replay the open animation as the shape changes
   lookReady = true;
-  const z = performance.now() < zoomLock ? zoomTarget : (s.zoom || ({small: .88, large: 1.15}[s.size] || 1));
-  if (Math.abs(z - zoomTarget) > 0.001 || zoomRaf === 0 && Math.abs(z - zoomNow) > 0.001) { zoomTarget = z; setZoom(z); }
   b.toggle("no-anim", s.animations === false);
   for (const k of ["hero", "xp", "friends", "stats", "agents", "today", "actions"]) b.toggle("no-" + k, sec[k] === false);
   const rows = s.agent_rows === undefined ? 5 : s.agent_rows;
@@ -565,29 +547,25 @@ function fillSettings() {
   for (const [k, id] of Object.entries(SET)) { const el = $(id); if (el.type === "checkbox") el.checked = !!s[k]; else el.value = s[k] ?? el.value; }
   $("s-volume-n").textContent = $("s-volume").value;
   document.querySelectorAll(".sec").forEach((el) => { el.checked = (s.sections || {})[el.dataset.sec] !== false; });
-  $("s-zoom").value = Math.round((s.zoom || ({small: .88, large: 1.15}[s.size] || 1)) * 100); $("s-zoom-n").textContent = $("s-zoom").value + "%";
   $("s-quiet").checked = !!q; $("s-qs").value = q ? q.start : "22:00"; $("s-qe").value = q ? q.end : "08:00";
   $("s-quiet-times").style.display = q ? "flex" : "none";
 }
 function saveSettings() {
   const v = {};
   for (const [k, id] of Object.entries(SET)) { const el = $(id); v[k] = el.type === "checkbox" ? el.checked : el.dataset.str ? el.value : +el.value; }
-  v.zoom = +$("s-zoom").value / 100; $("s-zoom-n").textContent = $("s-zoom").value + "%";
   v.sections = {};
   document.querySelectorAll(".sec").forEach((el) => { v.sections[el.dataset.sec] = el.checked; });
   v.quiet_hours = $("s-quiet").checked ? {start: $("s-qs").value || "22:00", end: $("s-qe").value || "08:00"} : null;
   $("s-volume-n").textContent = v.volume; $("s-quiet-times").style.display = v.quiet_hours ? "flex" : "none";
-  Object.assign(settings, v); zoomLock = performance.now() + 2500; applyLook(settings);          // show it now, don't wait for the next refresh
+  Object.assign(settings, v); applyLook(settings);          // show it now, don't wait for the next refresh
   post({type: "settings", json: JSON.stringify(v)});
 }
 $("gear").addEventListener("click", (e) => { e.stopPropagation(); fillSettings(); document.body.classList.toggle("settings-open"); });
 $("s-back").addEventListener("click", () => document.body.classList.remove("settings-open"));
 $("s-stale").addEventListener("click", () => post({type: "remove_stale"}));
 $("settings").addEventListener("change", saveSettings);
-$("zoom-out").addEventListener("click", (e) => { e.stopPropagation(); nudgeZoom(-0.1); });
-$("zoom-in").addEventListener("click", (e) => { e.stopPropagation(); nudgeZoom(0.1); });
 $("banner").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) post({type: b.dataset.act}); });
-$("settings").addEventListener("input", (e) => { if (e.target.id === "s-volume") $("s-volume-n").textContent = e.target.value; if (e.target.id === "s-zoom") saveSettings(); });
+$("settings").addEventListener("input", (e) => { if (e.target.id === "s-volume") $("s-volume-n").textContent = e.target.value; });
 const _render = render;
 render = (data) => {
   if (document.body.classList.contains("settings-open")) data = {...data, settings};   // while editing, the screen follows what you just chose
@@ -596,8 +574,8 @@ render = (data) => {
 };
 
 new ResizeObserver(() => {                    // layout size (offsetWidth), not getBoundingClientRect: that shrinks during the open animation
-  const k = parseFloat(getComputedStyle(document.body).zoom) || 1, el = $("panel");
-  post({type: "size", height: el.offsetHeight * k, width: el.offsetWidth * k});
+  const el = $("panel");
+  post({type: "size", height: el.offsetHeight, width: el.offsetWidth});
 }).observe($("panel"));
 const LIVE = !window.webkit && location.search.includes("live");     // Windows/Linux tray: same page in an app window
 if (LIVE) {

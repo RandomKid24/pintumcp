@@ -26,8 +26,6 @@ DEFAULTS = {
     "break_minutes": 50,
     # Look of the panel
     "layout": "vertical",      # vertical | horizontal
-    "size": "normal",          # (older) small | normal | large
-    "zoom": 1.0,               # 0.7 - 1.5, the +/- buttons in the panel header
     "sections": {"hero": True, "xp": True, "friends": True, "stats": True, "agents": True, "today": True, "actions": True},
     "agent_rows": 4,           # rows shown before the list scrolls (0 = all)
     "hide_done": False,        # leave finished agents out of the list
@@ -38,7 +36,7 @@ DEFAULTS = {
 # Panel-editable keys; they live in ~/.pintumcp/settings.json so package updates never wipe them
 USER_KEYS = ("volume", "sound_enabled", "notification_enabled", "toast_enabled", "stuck_alerts",
              "quiet_hours", "mute_when_focused", "mute_minutes", "theme", "voice_enabled", "voice_funny",
-             "break_reminder", "break_minutes", "layout", "size", "zoom", "sections", "agent_rows", "hide_done", "chart_range", "animations")
+             "break_reminder", "break_minutes", "layout", "sections", "agent_rows", "hide_done", "chart_range", "animations")
 
 _config: dict | None = None
 _stamp = None  # (mtime of config.json, mtime of settings.json) the cache was built from
@@ -77,10 +75,6 @@ def save_user(values: dict) -> dict:
             value = max(10, min(int(value), 240))
         elif key == "layout":
             value = value if value in ("vertical", "horizontal") else "vertical"
-        elif key == "size":
-            value = value if value in ("small", "normal", "large") else "normal"
-        elif key == "zoom":
-            value = round(max(0.7, min(float(value), 1.5)), 2)
         elif key == "chart_range":
             value = value if value in ("hours", "days") else "hours"
         elif key == "agent_rows":
