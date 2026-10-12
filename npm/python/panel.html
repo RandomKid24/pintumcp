@@ -121,7 +121,17 @@
   .set input[type=number] { width: 52px; text-align: center; }
   .set.sub { justify-content: flex-end; padding-top: 0; color: var(--muted); font-size: 12px; }
   .set input[type=range] { width: 120px; accent-color: var(--teal); } .set b { width: 28px; text-align: right; font-weight: 600; }
-  .set input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--teal); }
+  .grp { margin-top: 8px; background: var(--card); border-radius: 14px; padding: 0 12px; }
+  .grp summary { display: flex; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; list-style: none; font-weight: 700; font-size: 13px; }
+  .grp summary::-webkit-details-marker { display: none; }
+  .grp summary em { font-style: normal; font-size: 16px; width: 22px; text-align: center; }
+  .grp summary span { flex: 1; } .grp summary small { display: block; color: var(--muted); font-weight: 400; font-size: 11px; }
+  .grp summary::after { content: "\203A"; color: var(--muted); font-size: 18px; transition: transform .15s; } .grp[open] summary::after { transform: rotate(90deg); }
+  .grp .set:first-of-type { border-top: 1px solid var(--line); }
+  .set input[type=checkbox] { appearance: none; -webkit-appearance: none; width: 32px; height: 18px; border-radius: 99px; background: var(--card-2); position: relative; cursor: pointer; transition: background .15s; flex: none; border: 1px solid var(--line); }
+  .set input[type=checkbox]::after { content: ""; position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+  .set input[type=checkbox]:checked { background: var(--teal); border-color: var(--teal); } .set input[type=checkbox]:checked::after { transform: translateX(14px); background: #fff; }
+  .settings h2 { position: sticky; top: 0; background: var(--bg); margin: 0; padding: 4px 0 6px; z-index: 2; }
   .set input[type=time], .set input[type=number], .set select { background: var(--card-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; font: inherit; font-size: 12px; }
   .wide { width: 100%; margin-top: 8px; padding: 8px; border-radius: 12px; border: 0; background: var(--card-2); color: var(--text); font: inherit; font-weight: 600; font-size: 12.5px; cursor: pointer; }
   .wide:hover { filter: brightness(1.15); } .wide.ghost { background: transparent; color: var(--muted); }
@@ -178,22 +188,13 @@
 
   <div class="card settings" id="settings">
     <h2>Settings</h2>
-    <div class="set-h">Look</div>
-    <label class="set"><span>Layout</span><select id="s-layout" data-str="1"><option value="vertical">Vertical</option><option value="horizontal">Horizontal (wide)</option></select></label>
-    <label class="set"><span>Theme</span><select id="s-theme" data-str="1"><option value="dark">Dark</option><option value="light">Light</option><option value="pastel">Pastel</option><option value="hacker">Hacker</option></select></label>
-    <label class="set"><span>Chart shows</span><select id="s-chart" data-str="1"><option value="hours">Last 12 hours</option><option value="days">Last 7 days</option></select></label>
-    <label class="set"><span>Agent rows before scrolling</span><select id="s-rows"><option value="3">3</option><option value="5">5</option><option value="8">8</option><option value="0">All</option></select></label>
-    <label class="set"><span>Hide finished agents</span><input type="checkbox" id="s-hidedone"></label>
-    <label class="set"><span>Animations</span><input type="checkbox" id="s-anim"></label>
-    <div class="set-h">Show these parts</div>
-    <label class="set"><span>Pintu card</span><input type="checkbox" class="sec" data-sec="hero"></label>
-    <label class="set"><span>Level bar</span><input type="checkbox" class="sec" data-sec="xp"></label>
-    <label class="set"><span>Friends row</span><input type="checkbox" class="sec" data-sec="friends"></label>
-    <label class="set"><span>Needs you / Working cards</span><input type="checkbox" class="sec" data-sec="stats"></label>
-    <label class="set"><span>Agent list</span><input type="checkbox" class="sec" data-sec="agents"></label>
-    <label class="set"><span>Chart</span><input type="checkbox" class="sec" data-sec="today"></label>
-    <label class="set"><span>Buttons</span><input type="checkbox" class="sec" data-sec="actions"></label>
-    <div class="set-h">Sound &amp; popups</div>
+    <details class="grp" open><summary><em>💧</em><span>Reminders<small>water and break nudges</small></span></summary>
+    <label class="set"><span>Drink water</span><input type="checkbox" id="s-drink"></label>
+    <div class="set sub" id="s-drink-times"><span>Every</span><input type="number" id="s-drinkmin" min="10" max="240" step="5"><span>min</span></div>
+    <label class="set"><span>Take a break</span><input type="checkbox" id="s-break"></label>
+    <div class="set sub" id="s-break-times"><span>After</span><input type="number" id="s-breakmin" min="10" max="240" step="5"><span>min of work</span></div>
+    </details>
+    <details class="grp" open><summary><em>🔔</em><span>Sound &amp; popups<small>volume, quiet hours, mute</small></span></summary>
     <label class="set"><span>Volume</span><input type="range" min="0" max="100" id="s-volume"><b id="s-volume-n"></b></label>
     <label class="set"><span>Sound</span><input type="checkbox" id="s-sound"></label>
     <label class="set"><span>Notifications</span><input type="checkbox" id="s-notify"></label>
@@ -204,11 +205,24 @@
       <select id="s-mute"><option value="30">30 min</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option></select></label>
     <label class="set"><span>Quiet hours <i>(no sound)</i></span><input type="checkbox" id="s-quiet"></label>
     <div class="set sub" id="s-quiet-times"><span>From</span><input type="time" id="s-qs"><span>to</span><input type="time" id="s-qe"></div>
-    <div class="set-h">Reminders</div>
-    <label class="set"><span>Drink water</span><input type="checkbox" id="s-drink"></label>
-    <div class="set sub" id="s-drink-times"><span>Every</span><input type="number" id="s-drinkmin" min="10" max="240" step="5"><span>min</span></div>
-    <label class="set"><span>Take a break</span><input type="checkbox" id="s-break"></label>
-    <div class="set sub" id="s-break-times"><span>After</span><input type="number" id="s-breakmin" min="10" max="240" step="5"><span>min of work</span></div>
+    </details>
+    <details class="grp"><summary><em>🎨</em><span>Look<small>theme, layout, chart</small></span></summary>
+    <label class="set"><span>Layout</span><select id="s-layout" data-str="1"><option value="vertical">Vertical</option><option value="horizontal">Horizontal (wide)</option></select></label>
+    <label class="set"><span>Theme</span><select id="s-theme" data-str="1"><option value="dark">Dark</option><option value="light">Light</option><option value="pastel">Pastel</option><option value="hacker">Hacker</option></select></label>
+    <label class="set"><span>Chart shows</span><select id="s-chart" data-str="1"><option value="hours">Last 12 hours</option><option value="days">Last 7 days</option></select></label>
+    <label class="set"><span>Agent rows before scrolling</span><select id="s-rows"><option value="3">3</option><option value="5">5</option><option value="8">8</option><option value="0">All</option></select></label>
+    <label class="set"><span>Hide finished agents</span><input type="checkbox" id="s-hidedone"></label>
+    <label class="set"><span>Animations</span><input type="checkbox" id="s-anim"></label>
+    </details>
+    <details class="grp"><summary><em>🧩</em><span>Show these parts<small>pick what the panel shows</small></span></summary>
+    <label class="set"><span>Pintu card</span><input type="checkbox" class="sec" data-sec="hero"></label>
+    <label class="set"><span>Level bar</span><input type="checkbox" class="sec" data-sec="xp"></label>
+    <label class="set"><span>Friends row</span><input type="checkbox" class="sec" data-sec="friends"></label>
+    <label class="set"><span>Needs you / Working cards</span><input type="checkbox" class="sec" data-sec="stats"></label>
+    <label class="set"><span>Agent list</span><input type="checkbox" class="sec" data-sec="agents"></label>
+    <label class="set"><span>Chart</span><input type="checkbox" class="sec" data-sec="today"></label>
+    <label class="set"><span>Buttons</span><input type="checkbox" class="sec" data-sec="actions"></label>
+    </details>
     <button class="wide" id="s-stale">Remove all stale agents</button>
     <button class="wide ghost" id="s-back">Done</button>
   </div>
