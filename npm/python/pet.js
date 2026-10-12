@@ -22,7 +22,8 @@ function drawPet(pctx, mode, now, pet) {
   const X = (x) => x + dx, Y = (y) => y + dy;
   const px = (x, y, col, w = 1, h = 1) => c(X(x), Y(y), col, w, h);
   const breathe = Math.floor(now / 700) % 2;                                   // chest rises
-  const worn = pet.worn || [], headGear = ["hat", "party", "umbrella"].includes(mode);
+  const worn = pet.worn || [], has = (k) => mode === k || worn.includes(k);                // an item shows when it is the idle pose or worn
+  const head = ["hat", "party", "umbrella", "crown"].includes(mode) ? mode : ["umbrella", "party", "hat", "crown"].find((k) => worn.includes(k));   // one head item at a time
   if (worn.includes("cape")) px(2, 8, "#c0392b", 18, 9);                                 // level 10: a cape behind him
   // antenna
   px(10, 3, PC.yel, 2); px(9, 4, PC.yel, 4); px(10, 5, PC.stem, 2);
@@ -35,12 +36,12 @@ function drawPet(pctx, mode, now, pet) {
   if (mode === "done") { px(2, 9, bc, 1, 2); px(19, 9, bc, 1, 2); px(2, 8, bc); px(19, 8, bc); }
   if (mode === "wave") { px(19, 9, bc, 1, 3); px(20, frame % 2 ? 8 : 9, bc); }
   // sweater
-  if (mode === "sweater") {
+  if (has("sweater")) {
     px(3, 11, PC.sweater, 16, 2); px(4, 13, PC.sweater, 14);
     for (let x = 3; x < 19; x += 2) px(x, 12, PC.cream);
   }
   if (worn.includes("scarf")) { px(5, 14, PC.sweater, 12); px(16, 15, PC.sweater, 1, 2); px(15, 15, PC.cream); }   // level 3
-  if (worn.includes("crown") && !headGear) { px(8, 2, PC.yel, 6); px(8, 1, PC.yel); px(10, 1, PC.yel, 2); px(13, 1, PC.yel); px(10, 2, PC.red); }   // level 6
+  if (head === "crown") { px(8, 2, PC.yel, 6); px(8, 1, PC.yel); px(10, 1, PC.yel, 2); px(13, 1, PC.yel); px(10, 2, PC.red); }   // level 6
   // eyes
   const L = 7 + pet.look, R = 13 + pet.look;
   const blinking = now < pet.blinkAt + 140 && now >= pet.blinkAt;
@@ -54,7 +55,7 @@ function drawPet(pctx, mode, now, pet) {
     return e;
   };
   [...eyesFor(L, true), ...eyesFor(R, false)].forEach(([x, y]) => px(x, y, PC.eye));
-  if (mode === "music") { for (const y of [8, 9, 10]) { px(3, y, PC.eye); px(18, y, PC.eye); } px(4, 6, PC.eye); px(17, 6, PC.eye); px(3, 7, PC.eye); px(18, 7, PC.eye); }
+  if (has("music")) { for (const y of [8, 9, 10]) { px(3, y, PC.eye); px(18, y, PC.eye); } px(4, 6, PC.eye); px(17, 6, PC.eye); px(3, 7, PC.eye); px(18, 7, PC.eye); }
   // mouth
   const talk = now < pet.overrideUntil ? frame % 2 : 0;
   if (err || mode === "worried") { px(10, 12, PC.eye, 2); px(9, 13, PC.eye); px(12, 13, PC.eye); }
@@ -62,7 +63,7 @@ function drawPet(pctx, mode, now, pet) {
   else if (mode === "nap" || mode === "working") px(10, 13, PC.eye, 2);
   else { px(9, 12, PC.eye); px(12, 12, PC.eye); px(10, 13, PC.eye, 2); }
   // props and effects
-  if (mode === "coffee" || mode === "tired") {
+  if (has("coffee") || mode === "tired") {
     px(19, 11, PC.white, 2, 3); px(21, 12, PC.white);
     px(frame % 2 ? 20 : 19, 9, PC.steam); px(frame % 2 ? 19 : 20, 10, PC.steam);
   }
@@ -80,19 +81,21 @@ function drawPet(pctx, mode, now, pet) {
   }
   if ((err || mode === "worried") && frame % 2) px(15, 7, PC.glow);
   if (mode === "done" || mode === "proud") for (const [x, y] of [[1, 5], [20, 5], [0, 9], [21, 10], [3, 2], [18, 1]]) if ((frame + x) % 3) c(x, y, (frame + y) % 2 ? PC.yel : PC.cream);
-  if (mode === "hat") { px(7, 2, PC.dark, 8, 3); px(7, 4, PC.sweater, 8); px(6, 5, PC.dark, 10); }
-  if (mode === "glasses") {
+  if (head === "hat") { px(7, 2, PC.dark, 8, 3); px(7, 4, PC.sweater, 8); px(6, 5, PC.dark, 10); }
+  if (has("glasses")) {
     for (const x of [L - 1, R - 1]) { px(x, 8, PC.eye, 4); px(x, 11, PC.eye, 4); px(x, 9, PC.eye, 1, 2); px(x + 3, 9, PC.eye, 1, 2); px(x + 1, 9, PC.glow); }
     px(L + 3, 9, PC.eye, R - L - 4);
   }
-  if (mode === "umbrella") {
+  if (head === "umbrella") {
     px(7, 0, PC.sweater, 8); px(5, 1, PC.sweater, 12); px(4, 2, PC.sweater, 14);
     for (const x of [6, 10, 14]) { px(x, 1, PC.cream); px(x - 1, 2, PC.cream); }
     px(10, 3, PC.stem, 2, 3);
-    for (const [x, y] of [[1, 3], [20, 4], [2, 9], [19, 8], [0, 13], [21, 12]]) c(x, ((y + frame * 2) % 15) + 2, PC.glow);
+    if (mode === "umbrella") for (const [x, y] of [[1, 3], [20, 4], [2, 9], [19, 8], [0, 13], [21, 12]]) c(x, ((y + frame * 2) % 15) + 2, PC.glow);
+  }
+  if (head === "party") {
+    px(10, 0, PC.cream, 2); px(10, 1, PC.sweater, 2); px(9, 2, PC.cream, 4); px(8, 3, PC.sweater, 6);
   }
   if (mode === "party") {
-    px(10, 0, PC.cream, 2); px(10, 1, PC.sweater, 2); px(9, 2, PC.cream, 4); px(8, 3, PC.sweater, 6);
     for (const [x, y] of [[2, 4], [19, 3], [1, 9], [20, 8], [3, 14], [18, 15]]) if ((frame + x) % 3) c(x, y, [PC.yel, PC.sweater, PC.glow][(x + frame) % 3]);
   }
   if (spin && frame % 2) pctx.restore();

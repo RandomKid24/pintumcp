@@ -209,6 +209,17 @@ def break_nudge_due(minutes: int) -> int:
     return 0
 
 
+def drink_nudge_due(minutes: int) -> bool:
+    """True once per `minutes` of an active work session (the clock restarts with each session)."""
+    now = time.time()
+    p = load_profile()
+    if not progress(now)["session_minutes"] or now - max(p.get("drink_at", 0), p["session_start"]) < minutes * 60:
+        return False
+    p["drink_at"] = now
+    save_profile(p)
+    return True
+
+
 _events_cache = {"key": None, "events": []}
 
 

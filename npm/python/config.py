@@ -22,6 +22,9 @@ DEFAULTS = {
     "theme": "dark",           # dark | light | pastel | hacker
     "break_reminder": True,    # nudge after a long work session
     "break_minutes": 50,
+    "drink_reminder": True,    # nudge to drink some water while you work
+    "drink_minutes": 45,
+    "wear": None,              # accessories Pintu wears (None = the daily ones, unlocked by level)
     # Look of the panel
     "layout": "vertical",      # vertical | horizontal
     "sections": {"hero": True, "xp": True, "friends": False, "stats": True, "agents": True, "today": True, "actions": True},
@@ -31,10 +34,12 @@ DEFAULTS = {
     "animations": True,
 }
 
+WEARABLE = ("coffee", "sweater", "music", "scarf", "glasses", "hat", "umbrella", "crown", "party", "cape")
+
 # Panel-editable keys; they live in ~/.pintumcp/settings.json so package updates never wipe them
 USER_KEYS = ("volume", "sound_enabled", "notification_enabled", "toast_enabled", "stuck_alerts",
              "quiet_hours", "mute_when_focused", "mute_minutes", "theme",
-             "break_reminder", "break_minutes", "layout", "sections", "agent_rows", "hide_done", "chart_range", "animations")
+             "break_reminder", "break_minutes", "drink_reminder", "drink_minutes", "wear", "layout", "sections", "agent_rows", "hide_done", "chart_range", "animations")
 
 _config: dict | None = None
 _stamp = None  # (mtime of config.json, mtime of settings.json) the cache was built from
@@ -69,8 +74,10 @@ def save_user(values: dict) -> dict:
             value = max(0, min(int(value), 100))
         elif key == "mute_minutes":
             value = max(5, min(int(value), 24 * 60))
-        elif key == "break_minutes":
+        elif key in ("break_minutes", "drink_minutes"):
             value = max(10, min(int(value), 240))
+        elif key == "wear":
+            value = [w for w in value if w in WEARABLE] if isinstance(value, list) else None
         elif key == "layout":
             value = value if value in ("vertical", "horizontal") else "vertical"
         elif key == "chart_range":

@@ -102,6 +102,8 @@
   .unlock canvas { width: 44px; height: 40px; image-rendering: pixelated; background: var(--card-2); border-radius: 10px; flex: none; }
   .unlock .who2 { flex: 1; min-width: 0; } .unlock .who2 b { display: block; } .unlock .who2 span { color: var(--muted); font-size: 11px; }
   .unlock .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--card-2); color: var(--muted); }
+  .unlock.got { cursor: pointer; } .unlock.got:hover .tag { filter: brightness(1.2); }
+  .unlock.got.off .tag { background: var(--card-2); color: var(--muted); }
   .unlock.got .tag { background: color-mix(in srgb, var(--teal) 22%, transparent); color: var(--teal); }
   .unlock.locked canvas { filter: grayscale(1) brightness(.6); opacity: .7; } .unlock.locked .who2 b { color: var(--muted); }
   .set-h { margin: 10px 0 2px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
@@ -116,10 +118,11 @@
   .set { display: flex; align-items: center; gap: 8px; padding: 7px 2px; font-size: 12.5px; border-top: 1px solid var(--line); }
   .set:first-of-type { border-top: 0; }
   .set > span:first-child { flex: 1; } .set i { color: var(--muted); font-style: normal; }
+  .set input[type=number] { width: 52px; text-align: center; }
   .set.sub { justify-content: flex-end; padding-top: 0; color: var(--muted); font-size: 12px; }
   .set input[type=range] { width: 120px; accent-color: var(--teal); } .set b { width: 28px; text-align: right; font-weight: 600; }
   .set input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--teal); }
-  .set input[type=time], .set select { background: var(--card-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; font: inherit; font-size: 12px; }
+  .set input[type=time], .set input[type=number], .set select { background: var(--card-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; font: inherit; font-size: 12px; }
   .wide { width: 100%; margin-top: 8px; padding: 8px; border-radius: 12px; border: 0; background: var(--card-2); color: var(--text); font: inherit; font-weight: 600; font-size: 12.5px; cursor: pointer; }
   .wide:hover { filter: brightness(1.15); } .wide.ghost { background: transparent; color: var(--muted); }
   .x { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%; border: 0; background: rgba(255,255,255,.08); color: var(--muted);
@@ -190,19 +193,22 @@
     <label class="set"><span>Agent list</span><input type="checkbox" class="sec" data-sec="agents"></label>
     <label class="set"><span>Chart</span><input type="checkbox" class="sec" data-sec="today"></label>
     <label class="set"><span>Buttons</span><input type="checkbox" class="sec" data-sec="actions"></label>
-    <div class="set-h">Alerts</div>
+    <div class="set-h">Sound &amp; popups</div>
     <label class="set"><span>Volume</span><input type="range" min="0" max="100" id="s-volume"><b id="s-volume-n"></b></label>
     <label class="set"><span>Sound</span><input type="checkbox" id="s-sound"></label>
     <label class="set"><span>Notifications</span><input type="checkbox" id="s-notify"></label>
     <label class="set"><span>Animated Pintu popup <i>(macOS)</i></span><input type="checkbox" id="s-toast"></label>
     <label class="set"><span>"Maybe stuck?" alerts</span><input type="checkbox" id="s-stuck"></label>
     <label class="set"><span>Skip "done" while the agent's app is focused</span><input type="checkbox" id="s-focus"></label>
-    <label class="set"><span>Quiet hours</span><input type="checkbox" id="s-quiet"></label>
-    <div class="set sub" id="s-quiet-times"><span>From</span><input type="time" id="s-qs"><span>to</span><input type="time" id="s-qe"></div>
-    <label class="set"><span>Break reminder</span><input type="checkbox" id="s-break"></label>
-    <label class="set"><span>Remind me after</span><select id="s-breakmin"><option value="25">25 min</option><option value="50">50 min</option><option value="90">90 min</option></select></label>
     <label class="set"><span>Mute button lasts</span>
       <select id="s-mute"><option value="30">30 min</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option></select></label>
+    <label class="set"><span>Quiet hours <i>(no sound)</i></span><input type="checkbox" id="s-quiet"></label>
+    <div class="set sub" id="s-quiet-times"><span>From</span><input type="time" id="s-qs"><span>to</span><input type="time" id="s-qe"></div>
+    <div class="set-h">Reminders</div>
+    <label class="set"><span>Drink water</span><input type="checkbox" id="s-drink"></label>
+    <div class="set sub" id="s-drink-times"><span>Every</span><input type="number" id="s-drinkmin" min="10" max="240" step="5"><span>min</span></div>
+    <label class="set"><span>Take a break</span><input type="checkbox" id="s-break"></label>
+    <div class="set sub" id="s-break-times"><span>After</span><input type="number" id="s-breakmin" min="10" max="240" step="5"><span>min of work</span></div>
     <button class="wide" id="s-stale">Remove all stale agents</button>
     <button class="wide ghost" id="s-back">Done</button>
   </div>
@@ -323,7 +329,7 @@ function render(data) {
   pet.data = {agents, needs, working};
   const prog = data.progress || {level: 1, xp: 0, level_xp: 0, next_xp: 25, streak: 0, mood: "chill", yesterday: {done: 0, errors: 0}, session_minutes: 0, break_until: 0};
   pet.level = prog.level; pet.mood = prog.mood; pet.prog = prog; pet.sessionMin = prog.session_minutes;
-  pet.worn = [prog.level >= 3 && "scarf", prog.level >= 6 && "crown", prog.level >= 10 && "cape"].filter(Boolean);
+  pet.worn = wearList(prog.level, (data.settings || {}).wear);
   pet.onBreak = prog.break_until > data.now;
   applyLook(data.settings || {});
   const theme = (data.settings || {}).theme || "dark";
@@ -561,23 +567,34 @@ say.pin = (text, ms) => {
 // ---- Pintu's progress: XP, level, and which level unlocks which outfit
 const UNLOCKS = [
   {lv: 2, name: "Coffee mug", mode: "coffee"}, {lv: 2, name: "Knitted sweater", mode: "sweater"},
-  {lv: 3, name: "Headphones", mode: "music"}, {lv: 3, name: "Scarf (worn every day)", worn: "scarf"},
+  {lv: 3, name: "Headphones", mode: "music"}, {lv: 3, name: "Scarf", worn: "scarf"},
   {lv: 4, name: "Glasses", mode: "glasses"}, {lv: 5, name: "Top hat", mode: "hat"},
-  {lv: 6, name: "Umbrella in the rain", mode: "umbrella"}, {lv: 6, name: "Crown (worn every day)", worn: "crown"},
-  {lv: 8, name: "Party hat", mode: "party"}, {lv: 10, name: "Cape (worn every day)", worn: "cape"},
+  {lv: 6, name: "Umbrella in the rain", mode: "umbrella"}, {lv: 6, name: "Crown", worn: "crown"},
+  {lv: 8, name: "Party hat", mode: "party"}, {lv: 10, name: "Cape", worn: "cape"},
 ];
+const wearList = (level, saved) => {                          // what Pintu has on: your pick, else the everyday items; only unlocked ones
+  const list = Array.isArray(saved) ? saved : ["scarf", "crown", "cape"];
+  return list.filter((k) => UNLOCKS.some((u) => (u.mode || u.worn) === k && level >= u.lv));
+};
+function toggleWear(key) {
+  const lv = pet.prog.level, cur = wearList(lv, settings.wear);
+  settings.wear = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
+  pet.worn = wearList(lv, settings.wear);
+  post({type: "settings", json: JSON.stringify({wear: settings.wear})});
+  openProgress();
+}
 const xpFor = (lv) => 25 * (lv - 1) * (lv - 1);      // total XP needed to reach a level (same formula as the app)
 function openProgress() {
   const pr = pet.prog || {level: 1, xp: 0, level_xp: 0, next_xp: 25, streak: 0, best_streak: 0};
   $("pg-level").textContent = `Level ${pr.level}`;
   $("pg-xp").textContent = `${pr.xp} XP total · ${pr.next_xp - pr.xp} to level ${pr.level + 1}`;
   $("pg-bar").style.width = Math.min(100, (pr.xp - pr.level_xp) / Math.max(1, pr.next_xp - pr.level_xp) * 100) + "%";
-  $("pg-how").innerHTML = `Each finished task earns <b>10 XP</b> (+5 if it ran 10+ minutes). Streak: ${pr.streak} day${pr.streak === 1 ? "" : "s"}, best ${pr.best_streak}.`;
+  $("pg-how").innerHTML = `Each finished task earns <b>10 XP</b> (+5 if it ran 10+ minutes). Streak: ${pr.streak} day${pr.streak === 1 ? "" : "s"}, best ${pr.best_streak}. Tap anything unlocked to put it on Pintu.`;
   $("pg-list").innerHTML = UNLOCKS.map((u, i) => {
-    const got = pr.level >= u.lv, need = xpFor(u.lv);
-    return `<div class="unlock ${got ? "got" : "locked"}"><canvas width="44" height="40" data-i="${i}"></canvas>
+    const got = pr.level >= u.lv, need = xpFor(u.lv), key = u.mode || u.worn, on = wearList(pr.level, settings.wear).includes(key);
+    return `<div class="unlock ${got ? "got" : "locked"}${got && !on ? " off" : ""}" data-key="${got ? key : ""}"><canvas width="44" height="40" data-i="${i}"></canvas>
       <div class="who2"><b>${u.name}</b><span>Level ${u.lv} · ${need} XP${got ? "" : ` · ${Math.max(0, need - pr.xp)} XP to go`}</span></div>
-      <span class="tag">${got ? "Unlocked" : "Locked"}</span></div>`;
+      <span class="tag">${got ? (on ? "Wearing" : "Wear") : "Locked"}</span></div>`;
   }).join("");
   document.querySelectorAll("#pg-list canvas").forEach((cv) => {          // a little preview of each outfit
     const u = UNLOCKS[+cv.dataset.i];
@@ -586,6 +603,7 @@ function openProgress() {
   $("panel").scrollTop = 0;
   document.body.classList.add("settings-open", "xp-open");
 }
+$("pg-list").addEventListener("click", (e) => { const r = e.target.closest(".unlock"); if (r && r.dataset.key) toggleWear(r.dataset.key); });
 $("xp").addEventListener("click", (e) => { e.stopPropagation(); openProgress(); });
 $("pg-back").addEventListener("click", () => document.body.classList.remove("settings-open", "xp-open"));
 
@@ -593,7 +611,7 @@ $("pg-back").addEventListener("click", () => document.body.classList.remove("set
 let settings = {};
 const SET = {volume: "s-volume", sound_enabled: "s-sound", notification_enabled: "s-notify", toast_enabled: "s-toast",
              stuck_alerts: "s-stuck", mute_when_focused: "s-focus", mute_minutes: "s-mute", theme: "s-theme",
-             break_reminder: "s-break", break_minutes: "s-breakmin",
+             break_reminder: "s-break", break_minutes: "s-breakmin", drink_reminder: "s-drink", drink_minutes: "s-drinkmin",
              layout: "s-layout", chart_range: "s-chart", agent_rows: "s-rows", hide_done: "s-hidedone", animations: "s-anim"};
 function fillSettings() {
   const s = settings, q = s.quiet_hours;
@@ -602,6 +620,7 @@ function fillSettings() {
   document.querySelectorAll(".sec").forEach((el) => { el.checked = (s.sections || {})[el.dataset.sec] !== false; });
   $("s-quiet").checked = !!q; $("s-qs").value = q ? q.start : "22:00"; $("s-qe").value = q ? q.end : "08:00";
   $("s-quiet-times").style.display = q ? "flex" : "none";
+  $("s-drink-times").style.display = s.drink_reminder ? "flex" : "none"; $("s-break-times").style.display = s.break_reminder ? "flex" : "none";
 }
 function saveSettings() {
   const v = {};
@@ -610,6 +629,7 @@ function saveSettings() {
   document.querySelectorAll(".sec").forEach((el) => { v.sections[el.dataset.sec] = el.checked; });
   v.quiet_hours = $("s-quiet").checked ? {start: $("s-qs").value || "22:00", end: $("s-qe").value || "08:00"} : null;
   $("s-volume-n").textContent = v.volume; $("s-quiet-times").style.display = v.quiet_hours ? "flex" : "none";
+  $("s-drink-times").style.display = v.drink_reminder ? "flex" : "none"; $("s-break-times").style.display = v.break_reminder ? "flex" : "none";
   Object.assign(settings, v); applyLook(settings);          // show it now, don't wait for the next refresh
   post({type: "settings", json: JSON.stringify(v)});
 }
