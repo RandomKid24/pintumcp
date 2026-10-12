@@ -24,12 +24,14 @@ function platformPaths() {
   };
 }
 
+const firstExisting = (...paths) => paths.find((p) => fs.existsSync(p)) || paths[0];
+
 function detect() {
   const { appData, config } = platformPaths();
   const tools = [];
 
   // 1. MiMoCode
-  const mimocodeCfg = path.join(config, "mimocode", "mimocode.jsonc");
+  const mimocodeCfg = firstExisting(path.join(HOME, ".config", "mimocode", "mimocode.jsonc"), path.join(config, "mimocode", "mimocode.jsonc"));
   if (fs.existsSync(mimocodeCfg)) {
     tools.push({
       name: "MiMoCode",
@@ -41,7 +43,7 @@ function detect() {
   }
 
   // 2. OpenCode
-  const opencodeCfg = path.join(config, "opencode", "opencode.json");
+  const opencodeCfg = firstExisting(path.join(HOME, ".config", "opencode", "opencode.json"), path.join(config, "opencode", "opencode.json"));
   if (fs.existsSync(opencodeCfg)) {
     tools.push({
       name: "OpenCode",
@@ -53,7 +55,13 @@ function detect() {
   }
 
   // 3. Claude Desktop
-  const claudeDesktopCfg = path.join(appData, "Claude", "claude_desktop_config.json");
+  const localApp = process.env.LOCALAPPDATA || path.join(HOME, "AppData", "Local");
+  let storeCfg = "";
+  try {
+    const pkg = fs.readdirSync(path.join(localApp, "Packages")).find((d) => d.startsWith("Claude_"));
+    if (pkg) storeCfg = path.join(localApp, "Packages", pkg, "LocalCache", "Roaming", "Claude", "claude_desktop_config.json");
+  } catch {}
+  const claudeDesktopCfg = firstExisting(path.join(appData, "Claude", "claude_desktop_config.json"), storeCfg || path.join(appData, "Claude", "claude_desktop_config.json"));
   if (fs.existsSync(claudeDesktopCfg)) {
     tools.push({
       name: "Claude Desktop",
