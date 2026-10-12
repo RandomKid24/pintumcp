@@ -28,7 +28,7 @@ DEFAULTS = {
     "layout": "vertical",      # vertical | horizontal
     "size": "normal",          # small | normal | large
     "sections": {"hero": True, "xp": True, "friends": True, "stats": True, "agents": True, "today": True, "actions": True},
-    "agent_rows": 5,           # rows shown before the list scrolls (0 = all)
+    "agent_rows": 4,           # rows shown before the list scrolls (0 = all)
     "hide_done": False,        # leave finished agents out of the list
     "chart_range": "hours",    # hours | days
     "animations": True,

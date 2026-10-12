@@ -25,9 +25,9 @@
   header { display: flex; align-items: center; gap: 10px; padding: 0 4px 10px; }
   header h1 { font-size: 17px; font-weight: 700; letter-spacing: -.01em; flex: 1; }
   .chip { font-size: 11px; color: var(--muted); background: var(--card); border-radius: 999px; padding: 4px 10px; }
-  .hero { display: flex; align-items: center; gap: 12px; padding: 10px; margin-bottom: 8px; border-radius: 18px; }
-  .tile { width: 92px; height: 84px; cursor: pointer; flex: none; display: grid; place-items: center; border-radius: 15px; background: var(--card-2); }
-  .tile canvas { width: 88px; height: 80px; image-rendering: pixelated; }
+  .hero { display: flex; align-items: center; gap: 10px; padding: 7px 10px; margin-bottom: 8px; border-radius: 18px; }
+  .tile { width: 74px; height: 66px; cursor: pointer; flex: none; display: grid; place-items: center; border-radius: 15px; background: var(--card-2); }
+  .tile canvas { width: 66px; height: 60px; image-rendering: pixelated; }
   .headline { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
   .actions { display: flex; justify-content: space-around; padding: 10px 0 2px; }
   .actions button { background: none; border: 0; color: var(--text); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer;
@@ -58,14 +58,14 @@
           border-radius: 999px; padding: 3px 9px; }
   .time { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text); margin-top: 4px; }
   .took { color: var(--muted); font-size: 11px; }
-  .xp { display: flex; align-items: center; gap: 8px; padding: 0 4px 8px; font-size: 11px; color: var(--muted); }
+  .xp { display: flex; align-items: center; gap: 8px; padding: 0 4px 6px; font-size: 11px; color: var(--muted); }
   .xp .bar { flex: 1; height: 5px; border-radius: 5px; background: var(--card-2); overflow: hidden; }
   .xp .bar i { display: block; height: 100%; background: var(--teal); border-radius: 5px; transition: width .6s ease; }
   .xp b { color: var(--text); font-weight: 700; }
-  .friends { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 2px 8px; }
+  .friends { display: flex; gap: 5px; flex-wrap: nowrap; overflow: hidden; padding: 0 2px 6px; }
   .friends:empty { display: none; }
-  .friend { width: 46px; text-align: center; font-size: 9.5px; color: var(--muted); }
-  .friend canvas { width: 44px; height: 40px; image-rendering: pixelated; display: block; background: var(--card); border-radius: 10px; }
+  .friend { width: 40px; flex: none; text-align: center; font-size: 9px; color: var(--muted); }
+  .friend canvas { width: 38px; height: 34px; image-rendering: pixelated; display: block; background: var(--card); border-radius: 10px; }
   .friend span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
   .banner { display: none; margin-bottom: 8px; }
   .banner > div { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 12px; padding: 7px 10px; font-size: 12px; margin-bottom: 4px; }
@@ -264,7 +264,7 @@ const FRIEND_COLORS = [["#48d6be", "#28a096"], ["#ff9eb5", "#e0708f"], ["#7db8ff
 const friends = new Map();                   // one little Pintu per agent, drawn live
 function renderFriends(agents) {
   const box = $("friends"), keep = new Set();
-  agents.slice(0, 7).forEach((a, i) => {
+  agents.slice(0, 9).forEach((a, i) => {
     keep.add(a.key);
     if (!friends.has(a.key)) {
       const el = document.createElement("div"); el.className = "friend";
@@ -562,7 +562,10 @@ $("settings").addEventListener("input", (e) => { if (e.target.id === "s-volume")
 const _render = render;
 render = (data) => { if (!document.body.classList.contains("settings-open")) settings = data.settings || settings; _render(data); };
 
-new ResizeObserver(() => { const r = $("panel").getBoundingClientRect(); post({type: "size", height: r.height, width: r.width}); }).observe($("panel"));
+new ResizeObserver(() => {                    // layout size (offsetWidth), not getBoundingClientRect: that shrinks during the open animation
+  const k = parseFloat(getComputedStyle(document.body).zoom) || 1, el = $("panel");
+  post({type: "size", height: el.offsetHeight * k, width: el.offsetWidth * k});
+}).observe($("panel"));
 const LIVE = !window.webkit && location.search.includes("live");     // Windows/Linux tray: same page in an app window
 if (LIVE) {
   document.body.classList.add("live");
