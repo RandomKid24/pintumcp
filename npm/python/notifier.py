@@ -288,31 +288,39 @@ SPOKEN = {  # short, gentle lines: Pintu speaks the way the notification sounds 
     "Error": ["Something went a little wrong.", "We hit a small snag."],
     "Maybe Stuck": ["One of the agents has gone quiet.", "Someone might need a little help."],
 }
-CALM_VOICES = ("Ava", "Zoe", "Moira", "Tessa", "Samantha", "Karen")  # soft voices first; the first one installed is used
+CALM_VOICES = ("Ava", "Zoe", "Allison", "Serena", "Moira", "Tessa", "Samantha", "Karen")  # soft voices, best first
 _voice = None
 
 
 def _calm_voice() -> str | None:
+    """The most natural soft voice installed: Premium and Enhanced downloads beat the built-in compact ones."""
     global _voice
     if _voice is None:
         try:
             out = subprocess.run(["say", "-v", "?"], capture_output=True, text=True, timeout=5).stdout
-            names = {line.split()[0] for line in out.splitlines() if line.strip()}
-            _voice = next((v for v in CALM_VOICES if v in names), "")
+            best, best_score = "", (-1, 0)
+            for line in out.splitlines():
+                m = re.match(r"^(.+?)\s{2,}[a-z]{2,3}[_-][A-Za-z]{2,}", line)
+                if not m:
+                    continue
+                name = m.group(1).strip()
+                base = name.split(" (")[0]
+                if base in CALM_VOICES:
+                    score = (2 if "Premium" in name else 1 if "Enhanced" in name else 0, -CALM_VOICES.index(base))
+                    if score > best_score:
+                        best, best_score = name, score
+            _voice = best
         except Exception:
             _voice = ""
     return _voice or None
 
 
-def speak(text: str, funny: bool = False) -> None:
+def speak(text: str, funny: bool = False) -> None:  # funny is ignored: no robot voice any more
     """Say a short line out loud, slowly and softly (best effort, never blocks, never raises)."""
     try:
         if SYSTEM == "Darwin":
-            if funny:
-                cmd = ["say", "-v", "Zarvox", text]
-            else:
-                voice = _calm_voice()
-                cmd = ["say", *(["-v", voice] if voice else []), "-r", "150", f"[[volm 0.55]] {text}"]  # slow, quiet
+            voice = _calm_voice()
+            cmd = ["say", *(["-v", voice] if voice else []), "-r", "150", f"[[volm 0.55]] {text}"]  # slow, quiet
             subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif SYSTEM == "Windows":
             safe = text.replace("'", "")

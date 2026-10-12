@@ -178,7 +178,6 @@
     <label class="set"><span>Quiet hours</span><input type="checkbox" id="s-quiet"></label>
     <div class="set sub" id="s-quiet-times"><span>From</span><input type="time" id="s-qs"><span>to</span><input type="time" id="s-qe"></div>
     <label class="set"><span>Pintu speaks out loud</span><input type="checkbox" id="s-voice"></label>
-    <label class="set"><span>Robot voice</span><input type="checkbox" id="s-funny"></label>
     <label class="set"><span>Break reminder</span><input type="checkbox" id="s-break"></label>
     <label class="set"><span>Remind me after</span><select id="s-breakmin"><option value="25">25 min</option><option value="50">50 min</option><option value="90">90 min</option></select></label>
     <label class="set"><span>Mute button lasts</span>
@@ -541,7 +540,7 @@ say.pin = (text, ms) => {
 let settings = {};
 const SET = {volume: "s-volume", sound_enabled: "s-sound", notification_enabled: "s-notify", toast_enabled: "s-toast",
              stuck_alerts: "s-stuck", mute_when_focused: "s-focus", mute_minutes: "s-mute", theme: "s-theme",
-             voice_enabled: "s-voice", voice_funny: "s-funny", break_reminder: "s-break", break_minutes: "s-breakmin",
+             voice_enabled: "s-voice", break_reminder: "s-break", break_minutes: "s-breakmin",
              layout: "s-layout", chart_range: "s-chart", agent_rows: "s-rows", hide_done: "s-hidedone", animations: "s-anim"};
 function fillSettings() {
   const s = settings, q = s.quiet_hours;
