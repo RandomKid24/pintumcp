@@ -6,7 +6,7 @@ Fails if a platform backend cannot deliver one of the four alert types.
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "npm" / "python"))
 
 import events  # noqa: E402
 import notifier  # noqa: E402
