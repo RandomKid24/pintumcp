@@ -92,6 +92,18 @@
   body.no-anim .panel { animation: none; }
   body.no-hero .hero, body.no-xp #xp, body.no-friends .friends, body.no-stats .grid, body.no-agents #agents, body.no-today #today, body.no-actions .actions { display: none !important; }
   .settings { scrollbar-width: none; }
+  .progress { display: none; }
+  body.xp-open #progress { display: block; position: absolute; grid-area: 1 / 1 / -1 / -1; z-index: 6; inset: 44px 8px 8px; margin: 0 !important; background: var(--bg); overflow-y: auto; scrollbar-width: none; }
+  body.xp-open .settings { display: none !important; }
+  #xp { cursor: pointer; } #xp:hover b { color: var(--teal); }
+  .prog-top { display: flex; align-items: baseline; justify-content: space-between; margin-top: 6px; } .prog-top b { font-size: 22px; } .prog-top span { color: var(--muted); font-size: 12px; }
+  .bar.big { height: 8px; border-radius: 8px; background: var(--card-2); overflow: hidden; margin: 6px 0 4px; } .bar.big i { display: block; height: 100%; background: var(--teal); border-radius: 8px; }
+  .unlock { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
+  .unlock canvas { width: 44px; height: 40px; image-rendering: pixelated; background: var(--card-2); border-radius: 10px; flex: none; }
+  .unlock .who2 { flex: 1; min-width: 0; } .unlock .who2 b { display: block; } .unlock .who2 span { color: var(--muted); font-size: 11px; }
+  .unlock .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--card-2); color: var(--muted); }
+  .unlock.got .tag { background: color-mix(in srgb, var(--teal) 22%, transparent); color: var(--teal); }
+  .unlock.locked canvas { filter: grayscale(1) brightness(.6); opacity: .7; } .unlock.locked .who2 b { color: var(--muted); }
   .set-h { margin: 10px 0 2px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .gear { background: var(--card); border: 0; color: var(--muted); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
   .gear:hover { background: var(--card-2); color: var(--text); }
@@ -150,6 +162,16 @@
     <button class="gear" id="gear" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
   <div class="xp" id="xp"></div>
+
+  <div class="card progress" id="progress">
+    <h2>Pintu's progress</h2>
+    <div class="prog-top"><b id="pg-level"></b><span id="pg-xp"></span></div>
+    <div class="bar big"><i id="pg-bar"></i></div>
+    <div class="sub" id="pg-how"></div>
+    <div class="set-h">Unlocks</div>
+    <div id="pg-list"></div>
+    <button class="wide ghost" id="pg-back">Done</button>
+  </div>
 
   <div class="card settings" id="settings">
     <h2>Settings</h2>
@@ -308,7 +330,8 @@ function render(data) {
   document.body.dataset.theme = theme;
   pet.body = {pastel: "#ff9eb5", hacker: "#39ff6a"}[theme]; pet.shade = {pastel: "#e0708f", hacker: "#1fb347"}[theme];
   $("xp").innerHTML = `<b>Lv ${prog.level}</b><div class="bar"><i style="width:${Math.min(100, (prog.xp - prog.level_xp) / Math.max(1, prog.next_xp - prog.level_xp) * 100)}%"></i></div>`
-    + `<span>${prog.xp - prog.level_xp}/${prog.next_xp - prog.level_xp} XP${prog.streak > 1 ? ` &middot; ${prog.streak}-day streak` : ""}</span>`;
+    + `<span>${prog.xp - prog.level_xp}/${prog.next_xp - prog.level_xp} XP${prog.streak > 1 ? ` &middot; ${prog.streak}-day streak` : ""} &rsaquo;</span>`;
+  $("xp").title = "See what each level unlocks";
   renderBanner(data, prog);
   renderFriends(agents);
   $("break-label").textContent = pet.onBreak ? "End break" : "Break 5m";
@@ -535,6 +558,37 @@ say.pin = (text, ms) => {
   pet.overrideUntil = Math.max(pet.overrideUntil, performance.now() + ms); pet.override = pet.override || "wave";
 };
 
+// ---- Pintu's progress: XP, level, and which level unlocks which outfit
+const UNLOCKS = [
+  {lv: 2, name: "Coffee mug", mode: "coffee"}, {lv: 2, name: "Knitted sweater", mode: "sweater"},
+  {lv: 3, name: "Headphones", mode: "music"}, {lv: 3, name: "Scarf (worn every day)", worn: "scarf"},
+  {lv: 4, name: "Glasses", mode: "glasses"}, {lv: 5, name: "Top hat", mode: "hat"},
+  {lv: 6, name: "Umbrella in the rain", mode: "umbrella"}, {lv: 6, name: "Crown (worn every day)", worn: "crown"},
+  {lv: 8, name: "Party hat", mode: "party"}, {lv: 10, name: "Cape (worn every day)", worn: "cape"},
+];
+const xpFor = (lv) => 25 * (lv - 1) * (lv - 1);      // total XP needed to reach a level (same formula as the app)
+function openProgress() {
+  const pr = pet.prog || {level: 1, xp: 0, level_xp: 0, next_xp: 25, streak: 0, best_streak: 0};
+  $("pg-level").textContent = `Level ${pr.level}`;
+  $("pg-xp").textContent = `${pr.xp} XP total · ${pr.next_xp - pr.xp} to level ${pr.level + 1}`;
+  $("pg-bar").style.width = Math.min(100, (pr.xp - pr.level_xp) / Math.max(1, pr.next_xp - pr.level_xp) * 100) + "%";
+  $("pg-how").innerHTML = `Each finished task earns <b>10 XP</b> (+5 if it ran 10+ minutes). Streak: ${pr.streak} day${pr.streak === 1 ? "" : "s"}, best ${pr.best_streak}.`;
+  $("pg-list").innerHTML = UNLOCKS.map((u, i) => {
+    const got = pr.level >= u.lv, need = xpFor(u.lv);
+    return `<div class="unlock ${got ? "got" : "locked"}"><canvas width="44" height="40" data-i="${i}"></canvas>
+      <div class="who2"><b>${u.name}</b><span>Level ${u.lv} · ${need} XP${got ? "" : ` · ${Math.max(0, need - pr.xp)} XP to go`}</span></div>
+      <span class="tag">${got ? "Unlocked" : "Locked"}</span></div>`;
+  }).join("");
+  document.querySelectorAll("#pg-list canvas").forEach((cv) => {          // a little preview of each outfit
+    const u = UNLOCKS[+cv.dataset.i];
+    drawPet(cv.getContext("2d"), u.mode || "wave", 1100, {scale: 2, look: 0, blinkAt: 0, worn: u.worn ? [u.worn] : []});
+  });
+  $("panel").scrollTop = 0;
+  document.body.classList.add("settings-open", "xp-open");
+}
+$("xp").addEventListener("click", (e) => { e.stopPropagation(); openProgress(); });
+$("pg-back").addEventListener("click", () => document.body.classList.remove("settings-open", "xp-open"));
+
 // ---- settings screen: values come from Python (settings.json); every change is saved at once
 let settings = {};
 const SET = {volume: "s-volume", sound_enabled: "s-sound", notification_enabled: "s-notify", toast_enabled: "s-toast",
@@ -559,8 +613,8 @@ function saveSettings() {
   Object.assign(settings, v); applyLook(settings);          // show it now, don't wait for the next refresh
   post({type: "settings", json: JSON.stringify(v)});
 }
-$("gear").addEventListener("click", (e) => { e.stopPropagation(); $("panel").scrollTop = 0; fillSettings(); document.body.classList.toggle("settings-open"); });
-$("s-back").addEventListener("click", () => document.body.classList.remove("settings-open"));
+$("gear").addEventListener("click", (e) => { e.stopPropagation(); $("panel").scrollTop = 0; fillSettings(); document.body.classList.remove("xp-open"); document.body.classList.toggle("settings-open"); });
+$("s-back").addEventListener("click", () => document.body.classList.remove("settings-open", "xp-open"));
 $("s-stale").addEventListener("click", () => post({type: "remove_stale"}));
 $("settings").addEventListener("change", saveSettings);
 $("banner").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) post({type: b.dataset.act}); });
