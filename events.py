@@ -113,6 +113,19 @@ def deliver_event(
     )
 
 
+def deliver(state: str, message: str, project: str | None = None, agent: str | None = None) -> dict:
+    """Universal agent lifecycle delivery — the ONE entry point used by the MCP
+    servers, the Claude Code hooks, and the OpenCode plugin.
+
+    Always honours the configured volume, and completions go through the bundling
+    dispatcher so parallel finishes collapse into a single popup.
+    """
+    volume = get("volume", 80)
+    if state == "done":
+        return completion_dispatcher.queue_completion(message, volume, project, agent)
+    return deliver_event(state, message, volume, project, agent)
+
+
 class CompletionDispatcher:
     """Bundle completions into one popup, across every MCP server on this machine.
 

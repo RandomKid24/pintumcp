@@ -258,7 +258,7 @@ It reads the same local files under `~/.pintumcp/agents` that the menu-bar app r
 **Where the status comes from**
 
 - The MCP tools you already have: `agent_working`, `agent_question`, `agent_approval`, `agent_error`, `agent_done`, plus `agent_status` for silent progress notes. Pass `project` and `agent` so rows have good names; without them each AI session gets its own "Session 1234" row.
-- Claude Code hooks (optional, `hooks install`): Claude Code reports "working", "needs permission / input" and "done" automatically, so it shows up even if the AI never calls a tool. `hooks remove` undoes it, and your settings file is backed up first.
+- Claude Code hooks (optional, `hooks install`): Claude Code reports "starting", "working", "needs permission / input", "done" and "failed" automatically, so a session shows up before you type and even if the AI never calls a tool. Notifications use Claude's `notification_type` when available, so "approval" vs "question" no longer depends on the message wording. `hooks remove` undoes it, `hooks status` checks it, and your settings file is backed up first.
 
 Limits: an agent only shows up if it reports, and an agent that goes quiet while "working" for 10 minutes is flagged as maybe stuck. Everything stays on your machine, in small files under `~/.pintumcp/agents`. 
 

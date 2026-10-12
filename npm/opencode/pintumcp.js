@@ -39,7 +39,7 @@ else:
     status.update(state, message, project, agent, pid=int(pid))
     if alert == "1":
         import events
-        events.deliver_event(state, message, 80, project, agent)
+        events.deliver(state, message, project, agent)
 `;
 
 // A few words for what a tool call is doing.

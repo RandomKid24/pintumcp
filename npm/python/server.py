@@ -5,7 +5,7 @@ when they finish work, need attention, or encounter errors.
 """
 
 from mcp.server.mcpserver import MCPServer
-from events import completion_dispatcher, deliver_event
+from events import deliver
 from notifier import alert, doctor as notification_doctor, send_notification, play_sound
 from config import get
 import os
@@ -86,9 +86,7 @@ def agent_done(
     Plays a success chime and shows a desktop notification.
     """
     _track("done", message, project, agent)
-    return completion_dispatcher.queue_completion(
-        message, get("volume", 80), project, agent
-    )
+    return deliver("done", message, project, agent)
 
 
 @mcp.tool()
@@ -102,7 +100,7 @@ def agent_working(
     Use it only for tasks that will take minutes; finish with agent_done.
     """
     _track("working", message, project, agent)
-    return deliver_event("working", message, get("volume", 80), project, agent)
+    return deliver("working", message, project, agent)
 
 
 @mcp.tool()
@@ -130,7 +128,7 @@ def agent_question(
     Plays an attention sound and shows a desktop notification.
     """
     _track("question", message, project, agent)
-    return deliver_event("question", message, get("volume", 80), project, agent)
+    return deliver("question", message, project, agent)
 
 
 @mcp.tool()
@@ -144,7 +142,7 @@ def agent_approval(
     Use this before any action that needs explicit user authorization.
     """
     _track("approval", message, project, agent)
-    return deliver_event("approval", message, get("volume", 80), project, agent)
+    return deliver("approval", message, project, agent)
 
 
 @mcp.tool()
@@ -158,7 +156,7 @@ def agent_error(
     Plays an error sound and shows a desktop notification.
     """
     _track("error", message, project, agent)
-    return deliver_event("error", message, get("volume", 80), project, agent)
+    return deliver("error", message, project, agent)
 
 
 if __name__ == "__main__":

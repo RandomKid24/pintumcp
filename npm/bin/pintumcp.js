@@ -3,7 +3,7 @@
 const { detect } = require("../lib/detect");
 const { configureMcp, removeMcp } = require("../lib/configure");
 const { playPet, showPose } = require("../lib/pet");
-const { addHooks, removeHooks } = require("../lib/hooks");
+const { addHooks, removeHooks, listHooks } = require("../lib/hooks");
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
@@ -174,8 +174,12 @@ function cmdInstall() {
     installOpencodePlugin(pythonPath, serverPath);
     const claude = path.join(os.homedir(), ".claude", "settings.json");
     if (fs.existsSync(path.dirname(claude))) {
-      addHooks(claude, pythonPath, path.join(PYTHON_DIR, "hook.py"));
-      console.log("  ✓ Claude Code hooks installed");
+      if (fs.existsSync(pythonPath)) {
+        addHooks(claude, pythonPath, path.join(PYTHON_DIR, "hook.py"));
+        console.log("  ✓ Claude Code hooks installed");
+      } else {
+        console.log("  ✗ Claude Code hooks skipped: Python environment not found");
+      }
     }
   } catch (e) { console.log(`  ✗ alerts setup: ${e.message}`); }
 
@@ -358,14 +362,44 @@ function cmdBoard(args) {
 
 function cmdHooks(sub) {
   const settings = path.join(os.homedir(), ".claude", "settings.json");
+  const python = getVenvPython();
+  const hookPath = path.join(PYTHON_DIR, "hook.py");
   if (sub === "install") {
-    addHooks(settings, getVenvPython(), path.join(PYTHON_DIR, "hook.py"));
+    if (!fs.existsSync(python)) {
+      console.error(`  ✗ Python environment not found (${python}); run \`pintumcp install\` first.`);
+      process.exit(1);
+    }
+    addHooks(settings, python, hookPath);
     console.log(`Added Claude Code hooks to ${settings} (backup: settings.json.pintumcp.bak).`);
-    console.log("Claude Code sessions now report working / needs-you / done to the menu-bar app.");
+    console.log("Claude Code sessions now report starting / working / needs-you / done / failed to the menu-bar app.");
   } else if (sub === "remove") {
-    console.log(removeHooks(settings) ? "Removed pintumcp's Claude Code hooks." : "No pintumcp hooks were installed.");
+    let removed;
+    try {
+      removed = removeHooks(settings);
+    } catch (e) {
+      console.error(`  ✗ ${e.message}`);
+      process.exit(1);
+    }
+    console.log(removed ? "Removed pintumcp's Claude Code hooks." : "No pintumcp hooks were installed.");
+  } else if (sub === "status") {
+    let hooks;
+    try {
+      hooks = listHooks(settings);
+    } catch (e) {
+      console.error(`  ✗ ${e.message}`);
+      process.exit(1);
+    }
+    if (hooks.length === 0) {
+      console.log("No pintumcp hooks installed.");
+      return;
+    }
+    console.log(`pintumcp hooks in ${settings}:`);
+    for (const { event, command } of hooks) {
+      const stale = command !== `"${python}" "${hookPath}" ${event}`;
+      console.log(`  ${stale ? "⚠" : "✓"} ${event.padEnd(16)} ${command}${stale ? "  (paths changed; re-run 'pintumcp hooks install')" : ""}`);
+    }
   } else {
-    console.error("Usage: pintumcp hooks install|remove");
+    console.error("Usage: pintumcp hooks install|remove|status");
     process.exit(1);
   }
 }
@@ -403,7 +437,7 @@ Usage:
   npx pintumcp doctor       Check popup, sound and icon; send a test alert
   npx pintumcp tray         Show every agent's status in the macOS menu bar (tray stop to quit)
   npx pintumcp board        Watch every agent's status live in your terminal (--once for one frame)
-  npx pintumcp hooks install  Let Claude Code report its status automatically (hooks remove to undo)
+  npx pintumcp hooks install  Let Claude Code report its status automatically (hooks remove to undo; hooks status to check)
   npx pintumcp uninstall    Remove pintumcp from every AI tool's config
   npx pintumcp run          Start MCP server (stdio mode)
   npx pintumcp help         Show this help

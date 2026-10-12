@@ -252,5 +252,26 @@ class EventTests(unittest.TestCase):
         self.assertEqual(deliver.call_count, 2)
 
 
+    def test_deliver_routes_non_done_through_deliver_event_with_configured_volume(self):
+        deliver = MagicMock(return_value={"notification": True})
+        cfg = lambda k, d=None: 33 if k == "volume" else d  # noqa: E731
+        with patch.object(events, "alert", deliver), patch.object(events, "get", side_effect=cfg):
+            events.deliver("question", "q", "API", "Agent 1")
+
+        kwargs = deliver.call_args.kwargs
+        self.assertEqual(kwargs["volume"], 33)  # the user's volume, not a hardcoded 80
+        self.assertEqual(kwargs["title"], "API · Agent 1: Input Needed")
+
+    def test_deliver_routes_done_through_the_bundling_dispatcher(self):
+        queue = MagicMock(return_value={"queued": True, "delay_seconds": 3})
+        cfg = lambda k, d=None: 22 if k == "volume" else d  # noqa: E731
+        with patch.object(events, "completion_dispatcher", MagicMock(queue_completion=queue)), \
+                patch.object(events, "get", side_effect=cfg):
+            result = events.deliver("done", "Built it", "API")
+
+        self.assertEqual(result, {"queued": True, "delay_seconds": 3})
+        queue.assert_called_once_with("Built it", 22, "API", None)
+
+
 if __name__ == "__main__":
     unittest.main()

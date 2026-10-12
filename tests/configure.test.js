@@ -31,7 +31,7 @@ test("removeMcp leaves an unreadable config untouched", () => {
   assert.strictEqual(fs.readFileSync(file, "utf-8"), "{not json");
 });
 
-const { addHooks, removeHooks } = require("../npm/lib/hooks");
+const { addHooks, removeHooks, listHooks } = require("../npm/lib/hooks");
 
 test("addHooks is idempotent, keeps other hooks, and removeHooks restores the rest", () => {
   const file = path.join(tmp(), "settings.json");
@@ -44,11 +44,36 @@ test("addHooks is idempotent, keeps other hooks, and removeHooks restores the re
   let data = JSON.parse(fs.readFileSync(file, "utf-8"));
   assert.strictEqual(data.hooks.Stop.length, 2);
   assert.deepStrictEqual(Object.keys(data.hooks).sort(),
-    ["Notification", "PostToolUse", "SessionEnd", "Stop", "UserPromptSubmit"]);
+    ["Notification", "PostToolUse", "SessionEnd", "SessionStart", "Stop", "StopFailure", "UserPromptSubmit"]);
   assert.ok(fs.existsSync(file + ".pintumcp.bak"));
 
   assert.strictEqual(removeHooks(file), true);
   data = JSON.parse(fs.readFileSync(file, "utf-8"));
   assert.deepStrictEqual(data, { theme: "dark", hooks: { Stop: [other] } });
   assert.strictEqual(removeHooks(file), false);
+});
+
+test("listHooks reports ours and ignores everyone else's", () => {
+  const file = path.join(tmp(), "settings.json");
+  fs.writeFileSync(file, JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: "command", command: "echo mine" }] }] } }));
+  addHooks(file, "/x/python", "/x/pintumcp/npm/python/hook.py");
+  const found = listHooks(file);
+  assert.strictEqual(found.length, 7);
+  assert.ok(found.every((h) => h.command.includes("hook.py")));
+  assert.deepStrictEqual(found.map((h) => h.event).sort(),
+    ["Notification", "PostToolUse", "SessionEnd", "SessionStart", "Stop", "StopFailure", "UserPromptSubmit"]);
+});
+
+test("addHooks refuses to touch a settings file that is not valid JSON", () => {
+  const file = path.join(tmp(), "settings.json");
+  fs.writeFileSync(file, "{not json");
+  assert.throws(() => addHooks(file, "/x/python", "/x/hook.py"), /not valid JSON/);
+  assert.strictEqual(fs.readFileSync(file, "utf-8"), "{not json");
+});
+
+test("addHooks leaves no lock or temp files behind", () => {
+  const dir = tmp();
+  const file = path.join(dir, "settings.json");
+  addHooks(file, "/x/python", "/x/pintumcp/npm/python/hook.py");
+  assert.deepStrictEqual(fs.readdirSync(dir).filter((f) => f !== "settings.json"), []);
 });
