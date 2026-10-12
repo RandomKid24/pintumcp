@@ -77,3 +77,12 @@ test("addHooks leaves no lock or temp files behind", () => {
   addHooks(file, "/x/python", "/x/pintumcp/npm/python/hook.py");
   assert.deepStrictEqual(fs.readdirSync(dir).filter((f) => f !== "settings.json"), []);
 });
+
+test("Kiro: configureMcp creates settings/mcp.json and removeMcp takes it out again", () => {
+  const { configureMcp } = require("../npm/lib/configure");
+  const file = path.join(tmp(), ".kiro", "settings", "mcp.json");
+  const tool = { name: "Kiro", configPath: file, format: "json", mcpKey: "mcpServers", claudeFormat: true };
+  configureMcp(tool, "/py", "/server.py");
+  assert.deepStrictEqual(JSON.parse(fs.readFileSync(file, "utf-8")).mcpServers.pintumcp, { command: "/py", args: ["/server.py"] });
+  assert.strictEqual(removeMcp(tool), true);
+});

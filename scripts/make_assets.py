@@ -50,7 +50,7 @@ icon.save(ROOT / "assets/pintumcp-icon.png")
 
 (ROOT / "assets/transparent/icons").mkdir(parents=True, exist_ok=True)
 (ROOT / "assets/transparent/previews").mkdir(exist_ok=True)
-EVENTS = ("done", "question", "approval", "error", "thinking", "sleepy", "party")
+EVENTS = ("done", "question", "approval", "error", "thinking", "sleepy", "party", "drink")
 MOODS = [n for n in pet["frames"] if n not in EVENTS]
 for name in MOODS:  # the pet alone, transparent background
     sprite(name, 24).save(ROOT / f"assets/transparent/icons/pintu-{name}.png")

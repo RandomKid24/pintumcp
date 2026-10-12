@@ -286,6 +286,7 @@ Every notification **always plays sound**. You will hear it.
 | **Claude Desktop** | Auto-detected | `~/Library/Application Support/Claude/claude_desktop_config.json` |
 | **Claude Code** | Auto-detected | `~/.claude/settings.json` |
 | **Codex** (OpenAI) | Auto-detected | `~/.codex/config.toml` |
+| **Kiro** (app + CLI) | Auto-detected | `~/.kiro/settings/mcp.json` |
 | **Antigravity** | Auto-detected | `~/Library/Application Support/Antigravity/User/settings.json` |
 | **VS Code** | Auto-detected | `~/Library/Application Support/Code/User/settings.json` |
 

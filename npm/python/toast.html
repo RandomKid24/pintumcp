@@ -29,8 +29,8 @@
 <script src="pet.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
-const MODE = {done: "done", approval: "approval", question: "question", error: "error", thinking: "working", sleepy: "nap", party: "party", stuck: "question"};
-const COLOR = {done: "#3ddc97", approval: "#ff8a3d", question: "#ffb830", error: "#ff5c5c", stuck: "#ffb830"};
+const MODE = {done: "done", approval: "approval", question: "question", error: "error", thinking: "working", sleepy: "nap", party: "party", drink: "drink", stuck: "question"};
+const COLOR = {drink: "#5ab8ff", done: "#3ddc97", approval: "#ff8a3d", question: "#ffb830", error: "#ff5c5c", stuck: "#ffb830"};
 const ctx = $("pet").getContext("2d");
 const st = {look: 0, blinkAt: 0, hover: false, jumpUntil: 0, spinUntil: 0, overrideUntil: 0};
 let mode = "wave", app = null, born = 0;

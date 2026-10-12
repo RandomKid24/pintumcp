@@ -118,6 +118,18 @@ function detect() {
     });
   }
 
+  // 8. Kiro: the app and the CLI share ~/.kiro/settings/mcp.json
+  const kiroDir = path.join(HOME, ".kiro");
+  if (fs.existsSync(kiroDir)) {
+    tools.push({
+      name: "Kiro (app + CLI)",
+      configPath: path.join(kiroDir, "settings", "mcp.json"),
+      format: "json",
+      mcpKey: "mcpServers",
+      claudeFormat: true,
+    });
+  }
+
   return tools;
 }
 

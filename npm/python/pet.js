@@ -48,7 +48,7 @@ function drawPet(pctx, mode, now, pet) {
   const eyesFor = (x, left) => {
     if (mode === "nap" || mode === "tired" || blinking) return [[x, 10], [x + 1, 10]];
     if (err) return left ? [[x, 9], [x + 1, 10], [x + 1, 9]] : [[x + 1, 9], [x, 10], [x, 9]];
-    if (pet.hover || mode === "done" || mode === "music" || mode === "party" || mode === "proud") return [[x, 10], [x + 1, 9], [x + 2, 10]];  // ^ ^
+    if (pet.hover || mode === "done" || mode === "drink" || mode === "music" || mode === "party" || mode === "proud") return [[x, 10], [x + 1, 9], [x + 2, 10]];  // ^ ^
     const e = [[x, 9], [x, 10], [x + 1, 10]]; px(x + 1, 9, PC.white);
     if (["approval", "question"].includes(mode)) e.push([x, 11]);
     if (mode === "working") { return [[x, 10], [x + 1, 10], [x, 9]]; }          // looking down at the keys
@@ -66,6 +66,12 @@ function drawPet(pctx, mode, now, pet) {
   if (has("coffee") || mode === "tired") {
     px(19, 11, PC.white, 2, 3); px(21, 12, PC.white);
     px(frame % 2 ? 20 : 19, 9, PC.steam); px(frame % 2 ? 19 : 20, 10, PC.steam);
+  }
+  if (mode === "drink") {                                                              // sipping a glass of water
+    const sip = frame % 4 === 3;
+    px(sip ? 17 : 19, sip ? 6 : 8, PC.white, 3, 1); px(sip ? 17 : 19, sip ? 7 : 9, PC.white); px(sip ? 19 : 21, sip ? 7 : 9, PC.white);
+    px(sip ? 18 : 20, sip ? 7 : 9, "#5ab8ff"); px(sip ? 17 : 19, sip ? 8 : 10, PC.white, 3, 1);
+    for (const [x, y] of [[2, 4], [1, 8], [3, 12]]) if ((frame + x) % 3) px(x, y + (frame % 2), "#5ab8ff");
   }
   if (mode === "music") { const n = frame % 2; px(17 - n, 3 - n, PC.yel); px(18 - n, 2 - n, PC.yel); px(18 - n, 1 - n, PC.yel); px(16 + n, 5, PC.cream); }
   if (mode === "nap") { const z = frame % 4; px(16, 5, PC.cream); if (z > 0) { px(17, 4, PC.cream, 2); px(18, 3, PC.cream); } if (z > 1) { px(18, 1, PC.cream, 3); px(19, 2, PC.cream); px(18, 3, PC.cream, 3); } }

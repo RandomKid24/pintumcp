@@ -158,7 +158,7 @@ def housekeeping() -> None:
                                volume=config.get("volume", 80), icon=faces / "sleepy.png")
         if config.get("drink_reminder", True) and status.drink_nudge_due(config.get("drink_minutes", 45)):
             notifier.alert("Drink break!", "Have some water. Pintu is thirsty too.",
-                           volume=config.get("volume", 80), icon=faces / "thinking.png")
+                           volume=config.get("volume", 80), icon=faces / "drink.png")
         check_update_async()
     except Exception:
         pass  # never let a nudge break the tray

@@ -151,6 +151,12 @@ def make():
     put(g, [(0, 1), (3, 0), (14, 0), (17, 1), (2, 3), (15, 3), (1, 7)], "R")
     put(g, [(1, 2), (16, 2), (4, 1), (13, 1)], "A"); put(g, [(0, 3), (17, 4), (2, 1), (15, 1)], "C"); f["party"] = g
 
+    # drink: happy closed eyes, a blue glass of water in the raised right hand, a splash of drops
+    g = new(); clear(g, (5, 6, 11, 12), (7, 8)); arm_up_right(g, (6, 7))
+    put(g, [(4, 8), (5, 7), (6, 8), (11, 8), (12, 7), (13, 8)], "E")
+    put(g, [(15, 2), (16, 2), (17, 2), (15, 5), (16, 5), (17, 5), (15, 3), (17, 3), (15, 4), (17, 4)], "W")   # the glass
+    put(g, [(16, 3), (16, 4)], "C"); put(g, [(2, 2), (1, 4), (3, 5)], "C"); f["drink"] = g
+
     return {k: finish(v, k) for k, v in f.items()}
 
 

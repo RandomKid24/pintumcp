@@ -385,6 +385,24 @@
    "....BBB....BBB....",
    "....BBB....BBB....",
    ".................."
+  ],
+  "drink": [
+   "..................",
+   "........AA........",
+   "..C....AAAA....WWW",
+   "........LL.....WCW",
+   ".C.BBBBBBBBBBBBWCW",
+   "..BCBBBBBBBBBBBWWW",
+   "..BBBBBBBBBBBBBBBB",
+   "..BBBEBBBBBBEBBBBB",
+   "..BBEBEBBBBEBEBBB.",
+   ".BBBBBBBBBBBBBBB..",
+   ".BBBBBBEBBEBBBBB..",
+   "..BBBBBBEEBBBBBB..",
+   "...DDDDDDDDDDDD...",
+   "....BBB....BBB....",
+   "....BBB....BBB....",
+   ".................."
   ]
  },
  "tints": {

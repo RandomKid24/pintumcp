@@ -27,6 +27,7 @@ function readJsonc(filePath) {
 }
 
 function writeJson(filePath, data) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true }); // Kiro's settings/ may not exist yet
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n", "utf-8");
 }
 

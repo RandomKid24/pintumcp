@@ -456,6 +456,7 @@ Supported AI Tools:
   • Claude Desktop ~/Library/Application Support/Claude/claude_desktop_config.json
   • Claude Code    ~/.claude/settings.json
   • Codex          ~/.codex/config.toml
+  • Kiro (app+CLI) ~/.kiro/settings/mcp.json
   • Antigravity    ~/Library/Application Support/Antigravity/User/settings.json
   • VS Code        ~/Library/Application Support/Code/User/settings.json
 `);
