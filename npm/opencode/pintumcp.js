@@ -60,12 +60,12 @@ function launch(cmd, args, cwd) {
   try {
     if (typeof Bun !== "undefined" && typeof Bun.spawn === "function") {
       // detached + unref so a final alert still lands if OpenCode exits right after
-      Bun.spawn([cmd, ...args], { cwd, detached: true, stdin: "ignore", stdout: "ignore", stderr: "ignore" }).unref?.();
+      Bun.spawn([cmd, ...args], { cwd, detached: true, windowsHide: true, stdin: "ignore", stdout: "ignore", stderr: "ignore" }).unref?.();
       return;
     }
   } catch {}
   try {
-    spawn(cmd, args, { cwd, detached: true, stdio: "ignore" }).unref();
+    spawn(cmd, args, { cwd, detached: true, stdio: "ignore", windowsHide: true }).unref();   // windowsHide: on Windows a detached child otherwise opens its own console
   } catch {}
 }
 

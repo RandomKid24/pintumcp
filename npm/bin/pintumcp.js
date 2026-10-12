@@ -51,7 +51,7 @@ function setupVenv() {
     execSync(`${py} -m venv "${VENV_DIR}"`, { stdio: "inherit" });
     const dependencies = ['"mcp>=2.0.0,<3"'];
     if (process.platform === "win32") {
-      dependencies.push('"winotify>=1.1.0"');
+      dependencies.push('"psutil>=5.9"');   // finds Claude Code's process in-process, no helper windows
     }
     if (process.platform === "darwin") {
       dependencies.push('"pyobjc-framework-WebKit>=10"');
@@ -328,7 +328,7 @@ function cmdTray(sub) {
     console.error("Run `pintumcp install` first.");
     process.exit(1);
   }
-  const [probe, pkg] = mac ? ["import WebKit", "pyobjc-framework-WebKit>=10"] : ["import pystray, PIL", "pystray pillow"];
+  const [probe, pkg] = mac ? ["import WebKit", "pyobjc-framework-WebKit>=10"] : ["import pystray, PIL, psutil", "pystray pillow psutil"];
   try {
     execSync(`"${py}" -c "${probe}"`, { stdio: "ignore" });
   } catch {

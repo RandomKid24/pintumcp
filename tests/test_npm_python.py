@@ -41,6 +41,13 @@ class InterruptTests(unittest.TestCase):
             status.update("done", "ok", "API", "A", now=5000)  # clock skew: newer than "now"
             self.assertEqual(len(status.today_stats(now=100)["trend"]), 12)
 
+    def test_hook_never_opens_a_console_on_windows(self):
+        hook = load("hook")
+        out = SimpleNamespace(stdout="ParentProcessId=1\nCommandLine=x\n")
+        with mock.patch.object(hook, "NO_WINDOW", 0x08000000), mock.patch.object(hook.subprocess, "run", return_value=out) as run:
+            hook._windows_proc(5)
+        self.assertTrue(all(c.kwargs.get("creationflags") == 0x08000000 for c in run.call_args_list))
+
     def test_windows_toast_runs_a_hidden_powershell(self):
         with mock.patch.object(notifier.subprocess, "run", return_value=SimpleNamespace(returncode=0, stderr="")) as run:
             self.assertTrue(notifier._windows_notify("Done", "it's <ok>"))

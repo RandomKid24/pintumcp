@@ -21,3 +21,8 @@ test("OpenCode plugin exports one default that speaks both the v1 and v2 APIs", 
     fs.rmSync(tmp, { force: true });
   }
 });
+
+test("OpenCode plugin hides the helper processes it starts (no console windows on Windows)", () => {
+  const src = fs.readFileSync(PLUGIN, "utf-8");
+  assert.strictEqual((src.match(/windowsHide: true/g) || []).length, 2, "both Bun.spawn and child_process.spawn");
+});

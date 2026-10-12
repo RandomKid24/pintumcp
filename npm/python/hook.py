@@ -24,12 +24,15 @@ _QUESTION_TYPES = {"idle_prompt", "agent_needs_input", "elicitation_dialog",
                    "elicitation_url_dialog", "elicitation_response"}
 
 
+NO_WINDOW = 0x08000000 if os.name == "nt" else 0  # CREATE_NO_WINDOW: a hook must never pop up a console
+
+
 def _windows_proc(pid: int):
     """(parent pid, command line) on Windows, where there is no /proc and no ps."""
     try:  # wmic ships with Windows 10; deprecated but usually still present
         out = subprocess.run(
             ["wmic", "process", "where", f"processid={pid}", "get", "parentprocessid,commandline", "/format:list"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True, text=True, timeout=5, creationflags=NO_WINDOW,
         ).stdout
         ppid, command = None, ""
         for line in out.splitlines():
@@ -47,7 +50,7 @@ def _windows_proc(pid: int):
         script = (f'Get-CimInstance Win32_Process -Filter "ProcessId={int(pid)}" | '
                   "Select-Object ParentProcessId,CommandLine | ConvertTo-Json -Compress")
         out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
-                             capture_output=True, text=True, timeout=8).stdout
+                             capture_output=True, text=True, timeout=8, creationflags=NO_WINDOW).stdout
         data = json.loads(out)
         if data.get("ParentProcessId"):
             return int(data["ParentProcessId"]), data.get("CommandLine") or ""
