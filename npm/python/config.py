@@ -26,8 +26,8 @@ DEFAULTS = {
     "break_minutes": 50,
     # Look of the panel
     "layout": "vertical",      # vertical | horizontal
-    "sections": {"hero": True, "xp": True, "friends": True, "stats": True, "agents": True, "today": True, "actions": True},
-    "agent_rows": 4,           # rows shown before the list scrolls (0 = all)
+    "sections": {"hero": True, "xp": True, "friends": False, "stats": True, "agents": True, "today": True, "actions": True},
+    "agent_rows": 3,           # rows shown before the list scrolls (0 = all)
     "hide_done": False,        # leave finished agents out of the list
     "chart_range": "hours",    # hours | days
     "animations": True,

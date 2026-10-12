@@ -95,7 +95,8 @@
   .set-h { margin: 10px 0 2px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .gear { background: var(--card); border: 0; color: var(--muted); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
   .gear:hover { background: var(--card-2); color: var(--text); }
-  .panel { position: relative; min-height: 420px; }
+  .panel { position: relative; min-height: 420px; max-height: 560px; overflow-y: auto; scrollbar-width: none; }
+  .panel::-webkit-scrollbar { display: none; }
   .settings { display: none; }
   body.settings-open .settings { display: block; position: absolute; grid-area: 1 / 1 / -1 / -1; z-index: 6; inset: 44px 8px 8px; margin: 0 !important; background: var(--bg); max-height: none; overflow-y: auto; }
   body.settings-open .hero, body.settings-open .grid, body.settings-open #agents, body.settings-open #today, body.settings-open .actions,
@@ -254,7 +255,7 @@ function applyLook(s) {                      // layout, size, which parts show, 
   b.toggle("no-anim", s.animations === false);
   for (const k of ["hero", "xp", "friends", "stats", "agents", "today", "actions"]) b.toggle("no-" + k, sec[k] === false);
   const rows = s.agent_rows === undefined ? 5 : s.agent_rows;
-  $("agents").style.maxHeight = rows ? `${rows * 54 + 40}px` : "none";
+  $("agents").style.maxHeight = `${(rows || 8) * 54 + 40}px`;               // "All" still stops at 8 rows; the list scrolls
   pet.still = s.animations === false;
 }
 function renderBanner(data, prog) {
@@ -560,7 +561,7 @@ function saveSettings() {
   Object.assign(settings, v); applyLook(settings);          // show it now, don't wait for the next refresh
   post({type: "settings", json: JSON.stringify(v)});
 }
-$("gear").addEventListener("click", (e) => { e.stopPropagation(); fillSettings(); document.body.classList.toggle("settings-open"); });
+$("gear").addEventListener("click", (e) => { e.stopPropagation(); $("panel").scrollTop = 0; fillSettings(); document.body.classList.toggle("settings-open"); });
 $("s-back").addEventListener("click", () => document.body.classList.remove("settings-open"));
 $("s-stale").addEventListener("click", () => post({type: "remove_stale"}));
 $("settings").addEventListener("change", saveSettings);
