@@ -227,7 +227,7 @@ The menu-bar icon itself is animated. It shows the most urgent agent's face (wit
 - **Moods from your day:** a great day makes him proud, a day full of errors worries him, a long late one tires him, a record day excites him. He remembers yesterday ("Yesterday: 9 done. Today: 12.").
 - **Friends:** each agent gets its own little Pintu (own colour) acting out what that agent is doing. Each row also shows what it is doing right now ("Editing panel.html", "Running: npm test") and a **timeline** button for its recent history.
 - **Breaks:** after a long work session (50 min by default) Pintu suggests a break; the **Break 5m** button starts one and he naps.
-- **Voice:** Pintu can say a short line out loud with each alert (off by default; turn it on in Settings, with an optional robot voice).
+- **Voice:** Pintu can say a short, gentle line out loud with each alert, in a soft, slow, quiet voice (the first of Ava, Zoe, Moira, Tessa, Samantha you have on macOS; calm speech settings on Windows and Linux). It is off by default; turn it on in Settings, with an optional robot voice.
 - **Themes:** dark, light, pastel and hacker; Pintu changes colour to match.
 - **Update notice:** the panel tells you when a new version is out and has an **Update now** button.
 - **Make the panel yours (Settings):** vertical or horizontal (wide card grid) layout, theme, and switches to show or hide each part (Pintu card, level bar, friends, Needs/Working cards, agent list, chart, buttons). Also how many agent rows show before scrolling, hiding finished agents, the chart range (last 12 hours or last 7 days) and turning animations off.
