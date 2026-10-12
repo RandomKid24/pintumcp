@@ -123,6 +123,26 @@ function startTrayAtLogin() {
   console.log("  ✓ Pintu will start in the menu bar at login");
 }
 
+// OpenCode v2 discovers plugin files under the global plugins directory, so a
+// copy there is enough. A small runtime file beside it carries the Python paths
+// so the plugin never has to parse the MCP config.
+const OPENCODE_PLUGINS = path.join(os.homedir(), ".config", "opencode", "plugins");
+
+function installOpencodePlugin(pythonPath, serverPath) {
+  if (!fs.existsSync(path.dirname(OPENCODE_PLUGINS))) return; // OpenCode isn't installed
+  fs.mkdirSync(OPENCODE_PLUGINS, { recursive: true });
+  fs.copyFileSync(path.join(__dirname, "..", "opencode", "pintumcp.js"), path.join(OPENCODE_PLUGINS, "pintumcp.js"));
+  fs.writeFileSync(path.join(OPENCODE_PLUGINS, "pintumcp.runtime.json"),
+    JSON.stringify({ python: pythonPath, server: serverPath }, null, 2) + "\n");
+  console.log("  ✓ OpenCode alerts plugin installed");
+}
+
+function removeOpencodePlugin() {
+  for (const file of ["pintumcp.js", "pintumcp.runtime.json"]) {
+    fs.rmSync(path.join(OPENCODE_PLUGINS, file), { force: true });
+  }
+}
+
 function cmdInstall() {
   printBanner();
   console.log("Setting up Python environment...\n");
@@ -151,12 +171,7 @@ function cmdInstall() {
 
   // Alerts for OpenCode (plugin) and Claude Code (hooks) so replies notify without prompting the agent.
   try {
-    const dir = path.join(os.homedir(), ".config", "opencode", "plugins");
-    if (fs.existsSync(path.dirname(dir))) {
-      fs.mkdirSync(dir, { recursive: true });
-      fs.copyFileSync(path.join(__dirname, "..", "opencode", "pintumcp.js"), path.join(dir, "pintumcp.js"));
-      console.log("  ✓ OpenCode alerts plugin installed");
-    }
+    installOpencodePlugin(pythonPath, serverPath);
     const claude = path.join(os.homedir(), ".claude", "settings.json");
     if (fs.existsSync(path.dirname(claude))) {
       addHooks(claude, pythonPath, path.join(PYTHON_DIR, "hook.py"));
@@ -225,7 +240,7 @@ function cmdUninstall() {
     }
   }
   try { removeHooks(path.join(os.homedir(), ".claude", "settings.json")); } catch {}
-  try { fs.rmSync(path.join(os.homedir(), ".config", "opencode", "plugins", "pintumcp.js"), { force: true }); } catch {}
+  try { removeOpencodePlugin(); } catch {}
   try { execSync("pkill -f python/tray", { stdio: "ignore" }); } catch {}
   fs.rmSync(LAUNCH_AGENT, { force: true });
   try { fs.rmSync(path.join(os.homedir(), ".config", "autostart", "pintumcp.desktop"), { force: true }); } catch {}
@@ -320,6 +335,27 @@ function cmdTray(sub) {
                   : "Pintu is in your system tray (Linux: needs a tray/AppIndicator). Stop him with `pintumcp tray stop`.");
 }
 
+// Pintu in the terminal, for anyone who'd rather not use the menu-bar app.
+// `pintumcp board` watches the same status files the tray reads; `--once` prints one frame.
+function cmdBoard(args) {
+  const py = getVenvPython();
+  if (!fs.existsSync(py)) {
+    console.error("  Error: Run `pintumcp install` first.");
+    process.exit(1);
+  }
+  const child = spawn(py, [path.join(PYTHON_DIR, "board.py"), ...(args || [])], {
+    stdio: "inherit",
+    cwd: PYTHON_DIR,
+  });
+  child.on("error", (err) => {
+    console.error(`  Error: ${err.message}`);
+    process.exit(1);
+  });
+  process.on("SIGINT", () => child.kill("SIGINT"));
+  process.on("SIGTERM", () => child.kill("SIGTERM"));
+  child.on("exit", (code) => process.exit(code ?? 0));
+}
+
 function cmdHooks(sub) {
   const settings = path.join(os.homedir(), ".claude", "settings.json");
   if (sub === "install") {
@@ -366,6 +402,7 @@ Usage:
   npx pintumcp test         Send a test notification
   npx pintumcp doctor       Check popup, sound and icon; send a test alert
   npx pintumcp tray         Show every agent's status in the macOS menu bar (tray stop to quit)
+  npx pintumcp board        Watch every agent's status live in your terminal (--once for one frame)
   npx pintumcp hooks install  Let Claude Code report its status automatically (hooks remove to undo)
   npx pintumcp uninstall    Remove pintumcp from every AI tool's config
   npx pintumcp run          Start MCP server (stdio mode)
@@ -398,6 +435,9 @@ switch (cmd) {
     break;
   case "tray":
     cmdTray(process.argv[3]);
+    break;
+  case "board":
+    cmdBoard(process.argv.slice(3));
     break;
   case "hooks":
     cmdHooks(process.argv[3]);

@@ -246,6 +246,15 @@ npx pintumcp tray stop       # and leaves again
 npx pintumcp hooks install   # optional: Claude Code reports its status by itself
 ```
 
+**Pintu in your terminal (no menu bar needed).** If you'd rather not run the desktop app — or you're over SSH or in tmux — watch the same board live in your shell:
+
+```bash
+npx pintumcp board           # live board, refreshes once a second (Ctrl+C to quit)
+npx pintumcp board --once    # print one frame and exit
+```
+
+It reads the same local files under `~/.pintumcp/agents` that the menu-bar app reads, and writes nothing.
+
 **Where the status comes from**
 
 - The MCP tools you already have: `agent_working`, `agent_question`, `agent_approval`, `agent_error`, `agent_done`, plus `agent_status` for silent progress notes. Pass `project` and `agent` so rows have good names; without them each AI session gets its own "Session 1234" row.
@@ -335,7 +344,7 @@ Everything runs locally inside the MCP process started by your AI tool. There is
 
 ## Alerts for OpenCode and Claude Code
 
-`npx pintumcp` also installs an OpenCode plugin (`~/.config/opencode/plugins/pintumcp.js`) and Claude Code hooks, so you get a notification and sound when a reply finishes or an agent needs approval, without asking the agent to call a tool. Other tools (Claude Desktop, Codex, ...) alert when the agent calls a Pintu tool.
+`npx pintumcp` also installs an OpenCode plugin (`~/.config/opencode/plugins/pintumcp.js`) and Claude Code hooks, so you get a notification and sound when a reply finishes or an agent needs approval, without asking the agent to call a tool. The plugin speaks both the OpenCode v1 and v2 plugin APIs from the same file, so alerts and live board rows keep working after upgrading OpenCode. Other tools (Claude Desktop, Codex, ...) alert when the agent calls a Pintu tool.
 
 ## Commands
 
@@ -345,6 +354,9 @@ npx github:RandomKid24/pintumcp install      # Same as above
 npx github:RandomKid24/pintumcp detect       # Scan for AI tools (read-only, no changes)
 npx github:RandomKid24/pintumcp test         # Send a test notification + sound
 npx github:RandomKid24/pintumcp doctor       # Check popup, sound and icon readiness
+npx github:RandomKid24/pintumcp tray         # Status board in the menu bar / system tray
+npx github:RandomKid24/pintumcp board        # Status board in the terminal (--once for one frame)
+npx github:RandomKid24/pintumcp hooks install  # Claude Code reports its status automatically
 npx github:RandomKid24/pintumcp uninstall    # Remove pintumcp from every AI tool's config
 npx github:RandomKid24/pintumcp run          # Start MCP server manually (stdio mode)
 npx github:RandomKid24/pintumcp help         # Show help

@@ -43,7 +43,8 @@ test("addHooks is idempotent, keeps other hooks, and removeHooks restores the re
   addHooks(file, "/x/python", mine); // twice: no duplicates
   let data = JSON.parse(fs.readFileSync(file, "utf-8"));
   assert.strictEqual(data.hooks.Stop.length, 2);
-  assert.deepStrictEqual(Object.keys(data.hooks).sort(), ["Notification", "Stop", "UserPromptSubmit"]);
+  assert.deepStrictEqual(Object.keys(data.hooks).sort(),
+    ["Notification", "PostToolUse", "SessionEnd", "Stop", "UserPromptSubmit"]);
   assert.ok(fs.existsSync(file + ".pintumcp.bak"));
 
   assert.strictEqual(removeHooks(file), true);
