@@ -318,8 +318,11 @@ def main() -> None:
             self.height = max(200, min(int(height), 900))
             self.width = max(300, min(int(width or self.width), 1000))
             if self.win.isVisible():
-                top = self.win.frame().origin.y + self.win.frame().size.height
-                self.win.setFrame_display_(NSMakeRect(self.win.frame().origin.x, top - self.height, self.width, self.height), True)
+                old = self.win.frame()
+                top = old.origin.y + old.size.height
+                frame = NSMakeRect(old.origin.x, top - self.height, self.width, self.height)
+                big = abs(old.size.width - self.width) > 30 or abs(old.size.height - self.height) > 60  # layout switch: glide, don't jump
+                self.win.setFrame_display_animate_(frame, True, big)
                 self.win.invalidateShadow()
 
         # ---- data
