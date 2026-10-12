@@ -9,9 +9,22 @@ const path = require("path");
 const fs = require("fs");
 const { execSync, spawn } = require("child_process");
 
-const PYTHON_DIR = path.join(__dirname, "..", "python");
+// Everything runs from a stable folder, never from the package folder: `npx` keeps packages in a cache that
+// npm cleans up, and the tray, the login item and every tool's MCP entry would then point at deleted files.
+const APP_DIR = path.join(os.homedir(), ".pintumcp", "app");
+const PYTHON_DIR = path.join(APP_DIR, "python");
 const SERVER_PY = path.join(PYTHON_DIR, "server.py");
-const VENV_DIR = path.join(__dirname, "..", ".venv");
+const VENV_DIR = path.join(APP_DIR, ".venv");
+
+// Copy this package's Python sources into APP_DIR (every run, so an update is picked up).
+function syncApp() {
+  try {
+    fs.mkdirSync(APP_DIR, { recursive: true });
+    fs.cpSync(path.join(__dirname, "..", "python"), PYTHON_DIR, { recursive: true, force: true, filter: (p) => !p.includes("__pycache__") });
+  } catch (e) {
+    console.error(`  Could not copy Pintu into ${APP_DIR}: ${e.message}`);
+  }
+}
 
 function getVenvPython() {
   const p = process.platform;
@@ -250,7 +263,7 @@ function cmdUninstall() {
   try { fs.rmSync(path.join(os.homedir(), ".config", "autostart", "pintumcp.desktop"), { force: true }); } catch {}
   try { fs.rmSync(path.join(os.homedir(), ".local", "share", "applications", "pintumcp.desktop"), { force: true }); } catch {}
   try { fs.rmSync(path.join(process.env.APPDATA || "", "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "pintumcp-tray.vbs"), { force: true }); } catch {}
-  fs.rmSync(VENV_DIR, { recursive: true, force: true });
+  fs.rmSync(APP_DIR, { recursive: true, force: true });   // the copied sources and the Python environment
   showPose("sad");
   console.log("\n  Removed the Python environment. Restart your AI tools to finish.\n");
 }
@@ -465,6 +478,7 @@ Supported AI Tools:
 // ─── Main ───────────────────────────────────────────────
 
 const cmd = (process.argv[2] || "install").toLowerCase();
+if (!["help", "--help", "-h", "uninstall"].includes(cmd)) syncApp();
 
 switch (cmd) {
   case "install":
