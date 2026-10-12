@@ -43,6 +43,30 @@ def owner_pid():
     return None
 
 
+def describe_tool(payload: dict) -> str:
+    """What the agent just did, in a few words (shown on its row)."""
+    name, args = str(payload.get("tool_name") or ""), payload.get("tool_input") or {}
+    if not isinstance(args, dict):
+        return ""
+    target = os.path.basename(str(args.get("file_path") or args.get("notebook_path") or args.get("path") or ""))
+    text = " ".join(str(args.get("command") or args.get("pattern") or args.get("query") or args.get("url") or "").split())[:48]
+    if name in ("Edit", "MultiEdit", "Write", "NotebookEdit"):
+        return f"Editing {target}" if target else "Editing files"
+    if name == "Read":
+        return f"Reading {target}" if target else "Reading files"
+    if name == "Bash":
+        return f"Running: {text}" if text else "Running a command"
+    if name in ("Grep", "Glob"):
+        return f"Searching: {text}" if text else "Searching the code"
+    if name in ("WebFetch", "WebSearch"):
+        return f"Browsing: {text}" if text else "Browsing the web"
+    if name in ("Task", "Agent"):
+        return "Delegating to a sub-agent"
+    if name == "TodoWrite":
+        return "Planning the next steps"
+    return name.replace("mcp__", "").replace("__", " ") if name else ""
+
+
 def classify(event: str, payload: dict):
     """(state, message) for a Claude Code hook event, or None to ignore it."""
     message = str(payload.get("message") or "")
@@ -55,7 +79,7 @@ def classify(event: str, payload: dict):
     if event == "Stop":
         return "done", "Finished responding"
     if event == "PostToolUse":  # a tool ran, so any pending permission/question was answered
-        return "working", "Working on your request"
+        return "working", describe_tool(payload) or "Working on your request"
     if event == "SessionEnd":
         return "gone", ""
     return None

@@ -6,8 +6,10 @@ writes (see status.py); nothing is sent anywhere.
 """
 
 import json
+import os
 import random
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -73,8 +75,90 @@ def payload(items: list = None, now: float = None) -> dict:
                "message": i["message"], "in_state": i["in_state"], "age": i["age"], "stale": i["stale"], "took": i.get("took")}
               for i in items]
     import config
+    for a, i in zip(agents, items):
+        a["history"] = status.agent_history(i["project"], i["agent"], now)
     return {"now": now, "agents": agents, "today": status.today_stats(now), "muted_until": status.muted_until(),
-            "settings": config.user_settings()}
+            "settings": config.user_settings(), "progress": status.progress(now), "update": update_info()}
+
+
+# ---- update notice: ask npm at most every 6 hours; the panel offers a one-tap update
+def _version(text: str) -> tuple:
+    try:
+        return tuple(int(x) for x in text.strip().split(".")[:3])
+    except ValueError:
+        return (0,)
+
+
+def current_version() -> str:
+    try:
+        return json.loads((HERE.parent / "package.json").read_text(encoding="utf-8")).get("version", "0")
+    except (OSError, ValueError):
+        return "0"
+
+
+def update_info():
+    try:
+        latest = json.loads((status.root() / "update.json").read_text(encoding="utf-8")).get("latest", "")
+    except (OSError, ValueError):
+        return None
+    return {"latest": latest, "current": current_version()} if _version(latest) > _version(current_version()) else None
+
+
+def check_update_async() -> None:
+    path = status.root() / "update.json"
+    try:
+        if time.time() - path.stat().st_mtime < 6 * 3600:
+            return
+    except OSError:
+        pass
+
+    def work():
+        try:
+            import urllib.request
+            with urllib.request.urlopen("https://registry.npmjs.org/pintumcp/latest", timeout=8) as r:
+                latest = json.load(r)["version"]
+            path.write_text(json.dumps({"latest": latest}), encoding="utf-8")
+        except Exception:
+            path.touch()  # offline: try again in 6 hours
+    import threading
+    threading.Thread(target=work, daemon=True).start()
+
+
+def run_update() -> None:
+    """Re-run the installer, which replaces the files and restarts the tray."""
+    try:
+        if sys.platform == "win32":
+            subprocess.Popen(["cmd", "/c", "npx -y pintumcp@latest"], creationflags=0x08000000)
+        else:
+            shell = os.environ.get("SHELL", "/bin/sh")
+            subprocess.Popen([shell, "-lc", "npx -y pintumcp@latest"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        pass
+
+
+UNLOCKS = {2: "coffee and a sweater", 3: "headphones and a scarf", 4: "glasses", 5: "a top hat", 6: "an umbrella and a crown",
+           8: "a party hat", 10: "a cape"}
+
+
+def housekeeping() -> None:
+    """Once a second: level-up and break nudges, and the occasional update check."""
+    try:
+        import config, notifier
+        from pathlib import Path as P
+        faces = notifier.ICON_DIR / "faces"
+        level = status.level_up_check()
+        if level:
+            unlock = UNLOCKS.get(level)
+            notifier.alert("Pintu levelled up!", f"Level {level}" + (f". Unlocked {unlock}." if unlock else "."),
+                           volume=config.get("volume", 80), icon=faces / "party.png")
+        if config.get("break_reminder", True):
+            minutes = status.break_nudge_due(config.get("break_minutes", 50))
+            if minutes:
+                notifier.alert("Break time?", f"You've been at it for {minutes} min. Stretch your legs, Pintu will nap.",
+                               volume=config.get("volume", 80), icon=faces / "sleepy.png")
+        check_update_async()
+    except Exception:
+        pass  # never let a nudge break the tray
 
 
 def stuck_alerts(items: list, seen: set) -> None:
@@ -275,6 +359,7 @@ def main() -> None:
             except OSError:
                 pass
             stuck_alerts(self.items, self.stuck_seen)
+            housekeeping()
             state, badge = bar_state(self.items)
             if status.muted_until() and state in ("empty", "idle", "done"):
                 state = "muted"
@@ -306,6 +391,11 @@ def main() -> None:
             elif kind == "settings":
                 import config
                 config.save_user(json.loads(str(body.get("json") or "{}")))
+            elif kind == "break":
+                status.end_break() if status.progress()["break_until"] else status.start_break(5)
+                self.tick_(None)
+            elif kind == "update":
+                run_update()
             elif kind == "remove_stale":
                 for item in self.items:
                     if item.get("stale"):

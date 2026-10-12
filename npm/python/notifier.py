@@ -281,6 +281,33 @@ def _toast(title: str, message: str, icon: Path) -> bool:
         return False
 
 
+SPOKEN = {
+    "Task Complete": ["Ta-da! All done.", "Finished. Nailed it.", "Done and dusted.", "That's a wrap."],
+    "Approval Needed": ["Psst. I need a yes.", "Your approval, please.", "Waiting on you, boss."],
+    "Input Needed": ["Quick question for you.", "Got a sec? I have a question."],
+    "Error": ["Oh no. Something broke.", "Whoopsie. We have an error."],
+    "Maybe Stuck": ["Hmm, an agent went quiet.", "Someone might be stuck."],
+}
+
+
+def speak(text: str, funny: bool = False) -> None:
+    """Say a short line out loud (best effort, never blocks, never raises)."""
+    try:
+        if SYSTEM == "Darwin":
+            voice = ["-v", "Zarvox"] if funny else []
+            subprocess.Popen(["say", *voice, text], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif SYSTEM == "Windows":
+            ps = f"Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{text}')"
+            subprocess.Popen(["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=0x08000000)
+        else:
+            tool = shutil.which("spd-say") or shutil.which("espeak-ng") or shutil.which("espeak")
+            if tool:
+                subprocess.Popen([tool, text], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+
 def send_notification(
     title: str,
     message: str,
@@ -308,6 +335,11 @@ def send_notification(
 
     if play_snd and get("sound_enabled", True):
         result["sound"] = play_sound(sound, volume)
+        if get("voice_enabled", False):
+            import random
+            lines = next((v for k, v in SPOKEN.items() if title.endswith(k)), None)
+            if lines:
+                speak(random.choice(lines), get("voice_funny", False))
     return result
 
 

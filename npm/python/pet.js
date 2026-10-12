@@ -1,25 +1,29 @@
 // Pintu as pixel art on a 22x20 grid. Shared by the dashboard panel and the alert popup.
-const S = 6;
+const S6 = 6;
 const PC = {body: "#48d6be", shade: "#28a096", eye: "#101634", white: "#fff", yel: "#ffb830", stem: "#96aac8", red: "#ff7878", redShade: "#d25a5a",
             sweater: "#ff6b50", cream: "#ffe296", steam: "#bec8dc", gray: "#5a6272", dark: "#3a4150", glow: "#9ad8ff"};
 
 function drawPet(pctx, mode, now, pet) {
+  const S = pet.scale || S6, W = 22 * S, H = 20 * S;                              // friends are drawn smaller
   const frame = Math.floor(now / 350);
+  if (mode === "excited") mode = "party";
   const err = mode === "error", c = (x, y, col, w = 1, h = 1) => { pctx.fillStyle = col; pctx.fillRect(x * S, y * S, w * S, h * S); };
   let dx = 0, dy = 0;
   if (now < pet.jumpUntil) dy = -Math.round(Math.sin((1 - (pet.jumpUntil - now) / 600) * Math.PI) * 3);
   else if (["approval", "question"].includes(mode)) dy = frame % 3 === 0 ? -2 : 0;
   if (err) dx = frame % 2 ? 1 : -1;
   const spin = now < pet.spinUntil;
-  pctx.clearRect(0, 0, 132, 120);
-  if (spin && frame % 2) { pctx.save(); pctx.translate(132, 0); pctx.scale(-1, 1); }
+  pctx.clearRect(0, 0, W, H);
+  if (spin && frame % 2) { pctx.save(); pctx.translate(W, 0); pctx.scale(-1, 1); }
 
   // shadow
   pctx.fillStyle = "rgba(255,255,255,.07)"; pctx.fillRect((6 + (dy < -1 ? 1 : 0)) * S, 17 * S, (10 - (dy < -1 ? 2 : 0)) * S, S);
-  const bc = err ? PC.red : PC.body, sh = err ? PC.redShade : PC.shade;
+  const bc = err ? PC.red : pet.body || PC.body, sh = err ? PC.redShade : pet.shade || PC.shade;
   const X = (x) => x + dx, Y = (y) => y + dy;
   const px = (x, y, col, w = 1, h = 1) => c(X(x), Y(y), col, w, h);
   const breathe = Math.floor(now / 700) % 2;                                   // chest rises
+  const worn = pet.worn || [], headGear = ["hat", "party", "umbrella"].includes(mode);
+  if (worn.includes("cape")) px(2, 8, "#c0392b", 18, 9);                                 // level 10: a cape behind him
   // antenna
   px(10, 3, PC.yel, 2); px(9, 4, PC.yel, 4); px(10, 5, PC.stem, 2);
   if (mode === "working" && frame % 2) px(10, 3, PC.cream, 2);
@@ -35,13 +39,15 @@ function drawPet(pctx, mode, now, pet) {
     px(3, 11, PC.sweater, 16, 2); px(4, 13, PC.sweater, 14);
     for (let x = 3; x < 19; x += 2) px(x, 12, PC.cream);
   }
+  if (worn.includes("scarf")) { px(5, 14, PC.sweater, 12); px(16, 15, PC.sweater, 1, 2); px(15, 15, PC.cream); }   // level 3
+  if (worn.includes("crown") && !headGear) { px(8, 2, PC.yel, 6); px(8, 1, PC.yel); px(10, 1, PC.yel, 2); px(13, 1, PC.yel); px(10, 2, PC.red); }   // level 6
   // eyes
   const L = 7 + pet.look, R = 13 + pet.look;
   const blinking = now < pet.blinkAt + 140 && now >= pet.blinkAt;
   const eyesFor = (x, left) => {
-    if (mode === "nap" || blinking) return [[x, 10], [x + 1, 10]];
+    if (mode === "nap" || mode === "tired" || blinking) return [[x, 10], [x + 1, 10]];
     if (err) return left ? [[x, 9], [x + 1, 10], [x + 1, 9]] : [[x + 1, 9], [x, 10], [x, 9]];
-    if (pet.hover || mode === "done" || mode === "music" || mode === "party") return [[x, 10], [x + 1, 9], [x + 2, 10]];  // ^ ^
+    if (pet.hover || mode === "done" || mode === "music" || mode === "party" || mode === "proud") return [[x, 10], [x + 1, 9], [x + 2, 10]];  // ^ ^
     const e = [[x, 9], [x, 10], [x + 1, 10]]; px(x + 1, 9, PC.white);
     if (["approval", "question"].includes(mode)) e.push([x, 11]);
     if (mode === "working") { return [[x, 10], [x + 1, 10], [x, 9]]; }          // looking down at the keys
@@ -51,12 +57,12 @@ function drawPet(pctx, mode, now, pet) {
   if (mode === "music") { for (const y of [8, 9, 10]) { px(3, y, PC.eye); px(18, y, PC.eye); } px(4, 6, PC.eye); px(17, 6, PC.eye); px(3, 7, PC.eye); px(18, 7, PC.eye); }
   // mouth
   const talk = now < pet.overrideUntil ? frame % 2 : 0;
-  if (err) { px(10, 12, PC.eye, 2); px(9, 13, PC.eye); px(12, 13, PC.eye); }
+  if (err || mode === "worried") { px(10, 12, PC.eye, 2); px(9, 13, PC.eye); px(12, 13, PC.eye); }
   else if (["approval", "question"].includes(mode) || talk) { px(10, 12, PC.eye, 2, 2); }
   else if (mode === "nap" || mode === "working") px(10, 13, PC.eye, 2);
   else { px(9, 12, PC.eye); px(12, 12, PC.eye); px(10, 13, PC.eye, 2); }
   // props and effects
-  if (mode === "coffee") {
+  if (mode === "coffee" || mode === "tired") {
     px(19, 11, PC.white, 2, 3); px(21, 12, PC.white);
     px(frame % 2 ? 20 : 19, 9, PC.steam); px(frame % 2 ? 19 : 20, 10, PC.steam);
   }
@@ -72,8 +78,8 @@ function drawPet(pctx, mode, now, pet) {
     if (mode === "approval") { px(19, 2, col, 1, 4); px(19, 7, col); }
     else { px(18, 2, col, 3); px(20, 3, col); px(19, 4, col); px(19, 5, col); px(19, 7, col); }
   }
-  if (err && frame % 2) px(15, 7, PC.glow);
-  if (mode === "done") for (const [x, y] of [[1, 5], [20, 5], [0, 9], [21, 10], [3, 2], [18, 1]]) if ((frame + x) % 3) c(x, y, (frame + y) % 2 ? PC.yel : PC.cream);
+  if ((err || mode === "worried") && frame % 2) px(15, 7, PC.glow);
+  if (mode === "done" || mode === "proud") for (const [x, y] of [[1, 5], [20, 5], [0, 9], [21, 10], [3, 2], [18, 1]]) if ((frame + x) % 3) c(x, y, (frame + y) % 2 ? PC.yel : PC.cream);
   if (mode === "hat") { px(7, 2, PC.dark, 8, 3); px(7, 4, PC.sweater, 8); px(6, 5, PC.dark, 10); }
   if (mode === "glasses") {
     for (const x of [L - 1, R - 1]) { px(x, 8, PC.eye, 4); px(x, 11, PC.eye, 4); px(x, 9, PC.eye, 1, 2); px(x + 3, 9, PC.eye, 1, 2); px(x + 1, 9, PC.glow); }

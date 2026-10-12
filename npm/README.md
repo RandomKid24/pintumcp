@@ -223,6 +223,13 @@ The menu-bar icon itself is animated. It shows the most urgent agent's face (wit
 
 - **Animated alert popup (macOS):** while the menu-bar app runs, alerts appear as a small floating Pintu card at the top-right (he cheers, hops, sweats or naps to match the event) instead of a plain notification. Click it to jump to the agent's app. If the app isn't running, you get the normal notification.
 - **Live rows:** each row is tied to the Claude Code / OpenCode / MCP process behind it, so closing or crashing a session removes its row at once instead of leaving it as "working" or "stuck". OpenCode now reports working / approval / done to the board too, not just alerts.
+- **Pintu grows:** every finished task earns XP. He levels up (with a popup), keeps a daily streak, and unlocks things as he goes: coffee and a sweater (Lv 2), headphones and a scarf (3), glasses (4), top hat (5), umbrella and crown (6), party hat (8), cape (10).
+- **Moods from your day:** a great day makes him proud, a day full of errors worries him, a long late one tires him, a record day excites him. He remembers yesterday ("Yesterday: 9 done. Today: 12.").
+- **Friends:** each agent gets its own little Pintu (own colour) acting out what that agent is doing. Each row also shows what it is doing right now ("Editing panel.html", "Running: npm test") and a **timeline** button for its recent history.
+- **Breaks:** after a long work session (50 min by default) Pintu suggests a break; the **Break 5m** button starts one and he naps.
+- **Voice:** Pintu can say a short line out loud with each alert (off by default; turn it on in Settings, with an optional robot voice).
+- **Themes:** dark, light, pastel and hacker; Pintu changes colour to match.
+- **Update notice:** the panel tells you when a new version is out and has an **Update now** button.
 - **Settings (gear in the panel):** volume, sound, notifications, the animated popup, "maybe stuck?" alerts, quiet hours, how long Mute lasts, and "skip done while the agent's app is focused". Changes apply instantly to every running agent and are kept in `~/.pintumcp/settings.json`, so updates never reset them.
 - **Remove an agent by hand:** hover a row and click the **×**, or click **remove** on a "quiet, maybe stuck?" row. Settings has "Remove all stale agents".
 - **Ubuntu / GNOME:** Pintu shows in the top bar through AppIndicator (left-click opens its menu, then "Open Pintu"). The installer also adds a **Pintu** entry to your app menu, and if GNOME has no tray it opens the panel window for you, so you can always reach it. Only one Pintu runs per user.

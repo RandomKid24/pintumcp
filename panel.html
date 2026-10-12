@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pintu panel</title>
 <style>
+  body[data-theme="light"] { --bg: #f4f4f6; --card: #ffffff; --card-2: #ececf0; --line: rgba(0,0,0,.08); --text: #16161a; --muted: #6b6b76; --hover: rgba(0,0,0,.05); --teal: #2bb8a0; }
+  body[data-theme="pastel"] { --bg: #fff5f9; --card: #ffeaf2; --card-2: #ffdbe9; --line: rgba(120,40,80,.12); --text: #3a2a35; --muted: #8a6c7d; --hover: rgba(120,40,80,.06); --teal: #ff8fb1; }
+  body[data-theme="hacker"] { --bg: #020a04; --card: #07140a; --card-2: #0c1f10; --line: rgba(57,255,106,.14); --text: #b7ffb7; --muted: #4f9a5a; --hover: rgba(57,255,106,.07); --teal: #39ff6a;
+                              font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
   :root {
+    --hover: rgba(255,255,255,.05);
     --bg: #000; --card: #131316; --card-2: #1b1b20; --line: rgba(255,255,255,.07);
     --text: #f5f5f7; --muted: #8e8e93;
     --working: #4da3ff; --question: #ffb830; --approval: #ff8a3d; --error: #ff5c5c; --done: #3ddc97; --idle: #8e8e93;
@@ -40,8 +45,8 @@
   .agents::-webkit-scrollbar { display: none; }
   .agents h2 { padding: 6px 6px 4px; }
   .row { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 12px; cursor: pointer; }
-  .row:hover { background: rgba(255,255,255,.05); }
-  .row + .row { border-top: 1px solid var(--line); }
+  .row:hover { background: var(--hover); }
+  .item + .item { border-top: 1px solid var(--line); }
   .face { width: 36px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 10px;
           background: color-mix(in srgb, var(--c) 14%, transparent); }
   .face img { width: 30px; height: 27px; image-rendering: pixelated; }
@@ -53,6 +58,23 @@
           border-radius: 999px; padding: 3px 9px; }
   .time { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text); margin-top: 4px; }
   .took { color: var(--muted); font-size: 11px; }
+  .xp { display: flex; align-items: center; gap: 8px; padding: 0 4px 8px; font-size: 11px; color: var(--muted); }
+  .xp .bar { flex: 1; height: 5px; border-radius: 5px; background: var(--card-2); overflow: hidden; }
+  .xp .bar i { display: block; height: 100%; background: var(--teal); border-radius: 5px; transition: width .6s ease; }
+  .xp b { color: var(--text); font-weight: 700; }
+  .friends { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 2px 8px; }
+  .friends:empty { display: none; }
+  .friend { width: 46px; text-align: center; font-size: 9.5px; color: var(--muted); }
+  .friend canvas { width: 44px; height: 40px; image-rendering: pixelated; display: block; background: var(--card); border-radius: 10px; }
+  .friend span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .banner { display: none; margin-bottom: 8px; }
+  .banner > div { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 12px; padding: 7px 10px; font-size: 12px; margin-bottom: 4px; }
+  .banner > div span { flex: 1; } .banner button { border: 0; border-radius: 9px; padding: 4px 10px; font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; background: var(--teal); color: #04110e; }
+  .tl { position: absolute; top: 4px; right: 26px; width: 18px; height: 18px; border-radius: 50%; border: 0; background: rgba(128,128,128,.18); color: var(--muted); font-size: 10px; cursor: pointer; opacity: 0; transition: opacity .12s; padding: 0; line-height: 1; }
+  .row:hover .tl { opacity: 1; }
+  .timeline { padding: 2px 10px 8px 56px; font-size: 11px; color: var(--muted); }
+  .timeline div { display: flex; gap: 6px; padding: 1px 0; } .timeline i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); margin-top: 4px; flex: none; }
+  .timeline span:first-of-type { flex: 1; color: var(--text); }
   .gear { background: var(--card); border: 0; color: var(--muted); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
   .gear:hover { background: var(--card-2); color: var(--text); }
   .settings { display: none; margin-bottom: 8px; }
@@ -66,7 +88,7 @@
   .set input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--teal); }
   .set input[type=time], .set select { background: var(--card-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; font: inherit; font-size: 12px; }
   .wide { width: 100%; margin-top: 8px; padding: 8px; border-radius: 12px; border: 0; background: var(--card-2); color: var(--text); font: inherit; font-weight: 600; font-size: 12.5px; cursor: pointer; }
-  .wide:hover { background: #26262d; } .wide.ghost { background: transparent; color: var(--muted); }
+  .wide:hover { filter: brightness(1.15); } .wide.ghost { background: transparent; color: var(--muted); }
   .x { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%; border: 0; background: rgba(255,255,255,.08); color: var(--muted);
        font-size: 12px; line-height: 1; cursor: pointer; opacity: 0; transition: opacity .12s; }
   .row { position: relative; } .row:hover .x { opacity: 1; } .x:hover { background: var(--error); color: #fff; }
@@ -89,8 +111,8 @@
   .bars i.zero { background: var(--card-2); opacity: 1; }
   .axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; }
   footer { display: flex; justify-content: space-between; color: var(--muted); font-size: 10.5px; padding: 8px 6px 0; }
-  body.live { background: #000; }
-  html:has(body.live) { background: #000; }
+  body.live { background: var(--bg); }
+  html:has(body.live) { background: var(--bg); }
   body.live .panel { width: 100%; border-radius: 0; border: 0; }
   @keyframes pop { from { opacity: 0; transform: translateY(-10px) scale(.94); } to { opacity: 1; transform: none; } }
   body.out .panel { animation: none; opacity: 0; transform: translateY(-8px) scale(.96); transition: opacity .15s ease, transform .15s ease; }
@@ -106,6 +128,7 @@
     <span class="chip" id="count">0 agents</span>
     <button class="gear" id="gear" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
+  <div class="xp" id="xp"></div>
 
   <div class="card settings" id="settings">
     <h2>Settings</h2>
@@ -117,16 +140,25 @@
     <label class="set"><span>Skip "done" while the agent's app is focused</span><input type="checkbox" id="s-focus"></label>
     <label class="set"><span>Quiet hours</span><input type="checkbox" id="s-quiet"></label>
     <div class="set sub" id="s-quiet-times"><span>From</span><input type="time" id="s-qs"><span>to</span><input type="time" id="s-qe"></div>
+    <label class="set"><span>Theme</span><select id="s-theme" data-str="1"><option value="dark">Dark</option><option value="light">Light</option><option value="pastel">Pastel</option><option value="hacker">Hacker</option></select></label>
+    <label class="set"><span>Pintu speaks out loud</span><input type="checkbox" id="s-voice"></label>
+    <label class="set"><span>Robot voice</span><input type="checkbox" id="s-funny"></label>
+    <label class="set"><span>Break reminder</span><input type="checkbox" id="s-break"></label>
+    <label class="set"><span>Remind me after</span><select id="s-breakmin"><option value="25">25 min</option><option value="50">50 min</option><option value="90">90 min</option></select></label>
     <label class="set"><span>Mute button lasts</span>
       <select id="s-mute"><option value="30">30 min</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option></select></label>
     <button class="wide" id="s-stale">Remove all stale agents</button>
     <button class="wide ghost" id="s-back">Done</button>
   </div>
 
+  <div class="banner" id="banner"></div>
+
   <div class="card hero">
     <div class="tile"><canvas id="pet" width="132" height="120"></canvas></div>
     <div class="who"><div class="headline" id="headline"></div><div class="sub" id="herosub"></div></div>
   </div>
+
+  <div class="friends" id="friends"></div>
 
   <div class="grid">
     <div class="card" id="needs"></div>
@@ -141,6 +173,7 @@
     <button data-act="clear"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Clear done</button>
     <button data-act="doctor"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 0 0 4 0"/></svg></span>Test alert</button>
     <button data-act="mute"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></span><i id="mute-label" style="font-style:normal">Mute 1h</i></button>
+    <button data-act="break"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1M3 8h14v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM6 2v3M10 2v3M14 2v3"/></svg></span><i id="break-label" style="font-style:normal">Break 5m</i></button>
     <button data-act="quit"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10M5.6 6.6a9 9 0 1 0 12.8 0"/></svg></span>Quit</button>
   </div>
 
@@ -171,6 +204,39 @@ function span(sec) {                        // 4m 12s, 1h 12m
   const m = Math.floor(sec / 60);
   return m < 60 ? `${m}m ${String(sec % 60).padStart(2, "0")}s` : `${Math.floor(m / 60)}h ${m % 60}m`;
 }
+const expanded = new Set();
+function timeline(a) {                       // what this agent did lately, newest first
+  const at = (s) => new Date(s * 1000).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+  const rows = (a.history || []).map((h) => `<div style="--c:${COLOR[h.state] || COLOR.idle}"><i></i><span>${LABEL[h.state] || h.state}</span><span>${span(h.dur)}</span><span>${at(h.at)}</span></div>`).join("");
+  return `<div class="timeline">${rows || "No history yet."}</div>`;
+}
+function renderBanner(data, prog) {
+  const rows = [];
+  if (prog.break_until > data.now) rows.push(`<div><span>Break time. Back in <b data-until="${prog.break_until - (Date.now() / 1000 - skew)}">${clock(prog.break_until - data.now)}</b></span></div>`);
+  else if (prog.session_minutes >= ((data.settings || {}).break_minutes || 50) && (data.settings || {}).break_reminder !== false)
+    rows.push(`<div><span>${prog.session_minutes} min in a row. Stretch?</span><button data-act="break">Take a break</button></div>`);
+  if (data.update) rows.push(`<div><span>Update ${esc(data.update.latest)} is out</span><button data-act="update">Update now</button></div>`);
+  $("banner").style.display = rows.length ? "block" : "none";
+  $("banner").innerHTML = rows.join("");
+}
+const FRIEND_COLORS = [["#48d6be", "#28a096"], ["#ff9eb5", "#e0708f"], ["#7db8ff", "#4f8fe0"], ["#ffb86b", "#e08f3a"], ["#b69cff", "#8b6fe0"], ["#9be37a", "#6bbf4a"]];
+const friends = new Map();                   // one little Pintu per agent, drawn live
+function renderFriends(agents) {
+  const box = $("friends"), keep = new Set();
+  agents.slice(0, 7).forEach((a, i) => {
+    keep.add(a.key);
+    if (!friends.has(a.key)) {
+      const el = document.createElement("div"); el.className = "friend";
+      el.innerHTML = `<canvas width="66" height="60"></canvas><span></span>`; box.appendChild(el);
+      const h = [...a.key].reduce((n, ch) => n + ch.charCodeAt(0), 0), [body, shade] = FRIEND_COLORS[h % FRIEND_COLORS.length];
+      friends.set(a.key, {el, ctx: el.querySelector("canvas").getContext("2d"), st: {scale: 3, look: 0, blinkAt: 0, body, shade, worn: []}, mode: "nap"});
+    }
+    const f = friends.get(a.key);
+    f.mode = {working: "working", approval: "approval", question: "question", error: "error", done: "done"}[a.state] || "nap";
+    f.el.querySelector("span").textContent = a.name.split(" · ")[0].slice(0, 8);
+  });
+  for (const [key, f] of friends) if (!keep.has(key)) { f.el.remove(); friends.delete(key); }
+}
 function ago(sec) {
   sec = Math.floor(sec);
   if (sec < 45) return "just now";
@@ -187,6 +253,18 @@ function render(data) {
 
   $("count").textContent = `${agents.length} agent${agents.length === 1 ? "" : "s"}`;
   pet.data = {agents, needs, working};
+  const prog = data.progress || {level: 1, xp: 0, level_xp: 0, next_xp: 25, streak: 0, mood: "chill", yesterday: {done: 0, errors: 0}, session_minutes: 0, break_until: 0};
+  pet.level = prog.level; pet.mood = prog.mood; pet.prog = prog; pet.sessionMin = prog.session_minutes;
+  pet.worn = [prog.level >= 3 && "scarf", prog.level >= 6 && "crown", prog.level >= 10 && "cape"].filter(Boolean);
+  pet.onBreak = prog.break_until > data.now;
+  const theme = (data.settings || {}).theme || "dark";
+  document.body.dataset.theme = theme;
+  pet.body = {pastel: "#ff9eb5", hacker: "#39ff6a"}[theme]; pet.shade = {pastel: "#e0708f", hacker: "#1fb347"}[theme];
+  $("xp").innerHTML = `<b>Lv ${prog.level}</b><div class="bar"><i style="width:${Math.min(100, (prog.xp - prog.level_xp) / Math.max(1, prog.next_xp - prog.level_xp) * 100)}%"></i></div>`
+    + `<span>${prog.xp - prog.level_xp}/${prog.next_xp - prog.level_xp} XP${prog.streak > 1 ? ` &middot; ${prog.streak}-day streak` : ""}</span>`;
+  renderBanner(data, prog);
+  renderFriends(agents);
+  $("break-label").textContent = pet.onBreak ? "End break" : "Break 5m";
   const muted = (data.muted_until || 0) > data.now;
   pet.muted = muted;
   $("mute-label").textContent = muted ? `Unmute (${Math.ceil((data.muted_until - data.now) / 60)}m)` : `Mute ${((m) => (m % 60 ? `${m}m` : `${m / 60}h`))((data.settings || {}).mute_minutes || 60)}`;
@@ -208,7 +286,8 @@ function render(data) {
       Ask an agent to call <code>agent_working</code>, or run <code>pintumcp hooks install</code>.</div>`;
   } else {
     $("agents").innerHTML = `<h2>Agents</h2>` + agents.map((a) => `
-      <div class="row" data-key="${esc(a.key)}" style="--c:${COLOR[a.state] || COLOR.idle}">
+      <div class="item" style="--c:${COLOR[a.state] || COLOR.idle}"><div class="row" data-key="${esc(a.key)}">
+        <button class="tl" data-tl="${esc(a.key)}" title="Show timeline" aria-label="Timeline">&#9719;</button>
         <button class="x" data-rm="${esc(a.key)}" title="Remove this agent from the list" aria-label="Remove">×</button>
         <div class="face"><img src="assets/pet/${a.state}.gif" alt=""></div>
         <div class="who"><div class="name">${esc(a.name)}</div><div class="msg">${esc(a.message) || "&nbsp;"}</div></div>
@@ -219,7 +298,7 @@ function render(data) {
             : `${a.took ? `<span>took ${span(a.took)}</span> <span class="took">·</span> ` : ""}<span class="took" data-ago="${data.now - a.age}">${ago(a.age)}</span>`}</div>
           ${a.stale ? `<div class="stuck">quiet, maybe stuck? <span class="rm" data-rm="${esc(a.key)}">remove</span></div>` : ""}
         </div>
-      </div>`).join("");
+      </div>${expanded.has(a.key) ? timeline(a) : ""}</div>`).join("");
   }
 
   if (!barsHover) {                          // keep the chart steady while the pointer is on it
@@ -244,6 +323,8 @@ setInterval(() => {                         // live timers without asking Python
 }, 1000);
 
 $("agents").addEventListener("click", (e) => {
+  const tl = e.target.closest("[data-tl]");
+  if (tl) { e.stopPropagation(); expanded.has(tl.dataset.tl) ? expanded.delete(tl.dataset.tl) : expanded.add(tl.dataset.tl); return render(current); }
   const rm = e.target.closest("[data-rm]");
   if (rm) { e.stopPropagation(); return post({type: "remove", key: rm.dataset.rm}); }
   const r = e.target.closest(".row"); if (r) post({type: "focus", key: r.dataset.key});
@@ -293,6 +374,18 @@ function pool({data, needs, working}) {
   if (!data.agents.length) out.push("Nothing running. Just vibing.", "Wake me when an agent needs you.", "Zzz... or knitting. Hard to tell.");
   if (!needs.length) out.push(h < 5 ? "Late night coding? Hydrate." : h < 12 ? "Good morning. Ready when you are."
     : h < 17 ? "Afternoon. Snack break soon?" : h < 22 ? "Evening session. I'll keep watch." : "Late night coding? Hydrate.");
+  const pr = pet.prog;
+  if (pr) {
+    out.push(`Level ${pr.level}. ${pr.next_xp - pr.xp} XP to level ${pr.level + 1}.`);
+    if (pr.streak > 1) out.push(`${pr.streak}-day streak. Don't you dare break it.`);
+    if (pr.yesterday.done) out.push(`Yesterday: ${pr.yesterday.done} done. Today: ${pr.today.done}.`, pr.today.done > pr.yesterday.done ? "Beating yesterday already." : "Yesterday's record is within reach.");
+    if (pr.mood === "worried") out.push("Lots of errors today. Deep breaths.", "Rough day? Tomorrow's a fresh start.");
+    if (pr.mood === "proud") out.push("Great day. I'm proud of you.");
+    if (pr.mood === "excited") out.push("New personal best today!", "Look at you, breaking records.");
+    if (pr.mood === "tired") out.push("Long day. Rest soon?", "My eyelids are heavy. Yours too?");
+    if (pr.session_minutes >= 25) out.push(`${pr.session_minutes} min in a row. Water break?`);
+    if (pr.level >= 3 && pr.level < 4) out.push("Nice scarf, huh? Level 3 perk.");
+  }
   out.push("I'll ping you the second something needs you.", "Click an agent to jump back to it.", "Psst, poke me. I dare you.",
     "I have no hands but I'm very supportive.", "Fun fact: I run on pixels and optimism.", "Still here. Still teal.",
     "Don't mind me, just supervising.", "If I had pockets, I'd hold your tickets.", "Tip: drink water. I can't, I'm pixels.",
@@ -328,20 +421,28 @@ window.closing = () => document.body.classList.add("out");
 // ---- Pintu, alive: a pixel character on a 22x20 grid that blinks, looks at the cursor, reacts and keeps busy.
 const pet = {data: {agents: [], needs: [], working: []}, look: 0, lookAt: 0, blinkAt: 0, hover: false, jumpUntil: 0, spinUntil: 0,
              override: null, overrideUntil: 0, prevNeeds: 0, born: performance.now()};
-const IDLE = ["wave", "sweater", "coffee", "music", "nap", "hat", "glasses", "umbrella", "party"];
+const IDLE = [["wave", 1], ["nap", 1], ["coffee", 2], ["sweater", 2], ["music", 3], ["glasses", 4], ["hat", 5], ["umbrella", 6], ["party", 8]];   // [activity, level that unlocks it]
 const POKES = ["Boop!", "Hehe, that tickles.", "I'm working, I swear.", "Again! Again!", "Careful, I'm fragile.", "Five more minutes...", "You rang?", "Pet me gently."];
 const pctx = $("pet").getContext("2d");
 
 function petMode(now) {
   const {agents, needs, working} = pet.data;
   if (now < pet.overrideUntil && pet.override) return pet.override;
-  if (pet.muted && !pet.data.needs.length) return "nap";
+  if ((pet.muted || pet.onBreak) && !pet.data.needs.length) return "nap";
   if (needs.length) return needs[0].state;                  // approval | question | error
   if (working.length) return "working";
   if (agents.some((a) => a.state === "done" && a.age < 90)) return "done";
-  return IDLE[Math.floor((now - pet.born) / 9000) % IDLE.length];
+  const slot = Math.floor((now - pet.born) / 9000), open = IDLE.filter(([, lv]) => lv <= (pet.level || 1)).map(([m]) => m);
+  if (pet.mood && pet.mood !== "chill" && slot % 3 === 0) return pet.mood;     // today's mood shows through every third slot
+  return open[slot % open.length];
 }
 
+function drawFriends(now) {
+  for (const f of friends.values()) {
+    if (now > f.st.blinkAt + 140 && Math.random() < 0.02) f.st.blinkAt = now;
+    drawPet(f.ctx, f.mode, now, f.st);
+  }
+}
 function petTick() {
   if (!active) return;
   const now = performance.now();
@@ -351,6 +452,7 @@ function petTick() {
   if (n > pet.prevNeeds) pet.jumpUntil = now + 600;                                          // a new request: hop for attention
   pet.prevNeeds = n;
   drawPet(pctx, petMode(now), now, pet);
+  drawFriends(now);
 }
 setInterval(petTick, 90);
 
@@ -377,7 +479,8 @@ say.pin = (text, ms) => {
 // ---- settings screen: values come from Python (settings.json); every change is saved at once
 let settings = {};
 const SET = {volume: "s-volume", sound_enabled: "s-sound", notification_enabled: "s-notify", toast_enabled: "s-toast",
-             stuck_alerts: "s-stuck", mute_when_focused: "s-focus", mute_minutes: "s-mute"};
+             stuck_alerts: "s-stuck", mute_when_focused: "s-focus", mute_minutes: "s-mute", theme: "s-theme",
+             voice_enabled: "s-voice", voice_funny: "s-funny", break_reminder: "s-break", break_minutes: "s-breakmin"};
 function fillSettings() {
   const s = settings, q = s.quiet_hours;
   for (const [k, id] of Object.entries(SET)) { const el = $(id); if (el.type === "checkbox") el.checked = !!s[k]; else el.value = s[k] ?? el.value; }
@@ -387,7 +490,7 @@ function fillSettings() {
 }
 function saveSettings() {
   const v = {};
-  for (const [k, id] of Object.entries(SET)) { const el = $(id); v[k] = el.type === "checkbox" ? el.checked : +el.value; }
+  for (const [k, id] of Object.entries(SET)) { const el = $(id); v[k] = el.type === "checkbox" ? el.checked : el.dataset.str ? el.value : +el.value; }
   v.quiet_hours = $("s-quiet").checked ? {start: $("s-qs").value || "22:00", end: $("s-qe").value || "08:00"} : null;
   $("s-volume-n").textContent = v.volume; $("s-quiet-times").style.display = v.quiet_hours ? "flex" : "none";
   post({type: "settings", json: JSON.stringify(v)});
@@ -396,6 +499,7 @@ $("gear").addEventListener("click", (e) => { e.stopPropagation(); fillSettings()
 $("s-back").addEventListener("click", () => document.body.classList.remove("settings-open"));
 $("s-stale").addEventListener("click", () => post({type: "remove_stale"}));
 $("settings").addEventListener("change", saveSettings);
+$("banner").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) post({type: b.dataset.act}); });
 $("settings").addEventListener("input", (e) => { if (e.target.id === "s-volume") $("s-volume-n").textContent = e.target.value; });
 const _render = render;
 render = (data) => { if (!document.body.classList.contains("settings-open")) settings = data.settings || settings; _render(data); };
@@ -407,7 +511,7 @@ if (LIVE) {
   const token = new URLSearchParams(location.search).get("t");
   post = (msg) => {
     if (msg.type === "size") fetch(`/act/size?h=${Math.ceil(msg.height) + 2}&t=${token}`, {method: "POST"});
-    else if (["clear", "doctor", "mute", "quit", "remove_stale"].includes(msg.type)) fetch(`/act/${msg.type}?t=${token}`, {method: "POST"});
+    else if (["clear", "doctor", "mute", "quit", "remove_stale", "break", "update"].includes(msg.type)) fetch(`/act/${msg.type}?t=${token}`, {method: "POST"});
     else if (msg.type === "settings") fetch(`/act/settings?t=${token}`, {method: "POST", body: msg.json});
     else if (msg.type === "remove") fetch(`/act/remove?t=${token}&key=${encodeURIComponent(msg.key)}`, {method: "POST"});
   };
@@ -422,10 +526,10 @@ if (!window.webkit && !LIVE) {                      // browser preview with samp
     A("API · Agent 2", "approval", "Deploy v2.4.0 to production?", 95, 95),
     A("Web · Agent 2", "error", "Build failed: missing dependency 'lodash'", 410, 410),
     A("Web · Agent 1", "question", "Postgres or Mongo for the sessions table?", 160, 160),
-    A("API · Agent 1", "working", "Refactoring the auth module", 252, 40),
+    A("API · Agent 1", "working", "Editing auth.py", 252, 40, {history: [{state: "working", at: t - 252, dur: 252}, {state: "done", at: t - 900, dur: 120}, {state: "working", at: t - 1500, dur: 600}]}),
     A("Docs · Agent 1", "done", "47 tests pass. Ready to review.", 600, 600, {took: 252}),
     A("Infra · Agent 1", "working", "Migrating the staging database", 1260, 780, {stale: true}),
-  ], today: {done: 12, errors: 2, trend: [0, 1, 0, 2, 1, 3, 0, 1, 2, 1, 0, 1], err_trend: [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0], longest: "1h 12m"}});
+  ], progress: {xp: 310, level: 4, level_xp: 225, next_xp: 400, streak: 3, best_streak: 5, mood: "proud", yesterday: {done: 9, errors: 1}, today: {done: 12, errors: 2}, session_minutes: 56, break_until: 0}, update: {latest: "9.9.9", current: "1.2.13"}, settings: {theme: "dark", volume: 80, break_minutes: 50, break_reminder: true, mute_minutes: 60}, today: {done: 12, errors: 2, trend: [0, 1, 0, 2, 1, 3, 0, 1, 2, 1, 0, 1], err_trend: [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0], longest: "1h 12m"}});
 }
 </script>
 </body>

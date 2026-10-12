@@ -29,6 +29,8 @@ SERVER_PORT = 0  # chosen at start
 POPUP = None  # Windows: the borderless popup (winpopup.Popup)
 TOKEN = f"{random.getrandbits(64):x}"  # other local pages can't poke the server without it
 ACTIONS = {"clear": lambda: status.clear_finished(),
+           "break": lambda: status.end_break() if status.progress()["break_until"] else status.start_break(5),
+           "update": lambda: tray.run_update(),
            "remove_stale": lambda: [status.remove(i["project"], i["agent"]) for i in status.snapshot() if i.get("stale")],
            "mute": lambda: status.set_mute(0 if status.muted_until() else __import__("config").get("mute_minutes", 60) * 60), "doctor": lambda: __import__("events").deliver_event(
     "done", "Test alert from the tray", 40, "pintumcp", "tray")}
@@ -157,6 +159,7 @@ def main():
             try:
                 items = status.snapshot()
                 tray.stuck_alerts(items, stuck_seen)
+                tray.housekeeping()
                 new_state, badge = tray.bar_state(items)
                 if status.muted_until() and new_state in ("empty", "idle", "done"):
                     new_state = "muted"
