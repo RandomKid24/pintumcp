@@ -20,8 +20,6 @@ DEFAULTS = {
     "stuck_alerts": True,      # one "maybe stuck?" alert per quiet agent
     "mute_minutes": 60,        # what the Mute button mutes for
     "theme": "dark",           # dark | light | pastel | hacker
-    "voice_enabled": False,    # Pintu says a short line out loud with each alert
-    "voice_funny": False,      # robot voice
     "break_reminder": True,    # nudge after a long work session
     "break_minutes": 50,
     # Look of the panel
@@ -35,7 +33,7 @@ DEFAULTS = {
 
 # Panel-editable keys; they live in ~/.pintumcp/settings.json so package updates never wipe them
 USER_KEYS = ("volume", "sound_enabled", "notification_enabled", "toast_enabled", "stuck_alerts",
-             "quiet_hours", "mute_when_focused", "mute_minutes", "theme", "voice_enabled", "voice_funny",
+             "quiet_hours", "mute_when_focused", "mute_minutes", "theme",
              "break_reminder", "break_minutes", "layout", "sections", "agent_rows", "hide_done", "chart_range", "animations")
 
 _config: dict | None = None

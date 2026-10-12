@@ -281,62 +281,6 @@ def _toast(title: str, message: str, icon: Path) -> bool:
         return False
 
 
-SPOKEN = {  # short, gentle lines: Pintu speaks the way the notification sounds feel
-    "Task Complete": ["All done. Take your time.", "That one's finished.", "Done, whenever you're ready.", "All wrapped up."],
-    "Approval Needed": ["When you have a moment, I need your approval.", "A small yes would help me along.", "Waiting for you, no rush."],
-    "Input Needed": ["When you're ready, I have a question.", "A quick question, whenever you can."],
-    "Error": ["Something went a little wrong.", "We hit a small snag."],
-    "Maybe Stuck": ["One of the agents has gone quiet.", "Someone might need a little help."],
-}
-CALM_VOICES = ("Ava", "Zoe", "Allison", "Serena", "Moira", "Tessa", "Samantha", "Karen")  # soft voices, best first
-_voice = None
-
-
-def _calm_voice() -> str | None:
-    """The most natural soft voice installed: Premium and Enhanced downloads beat the built-in compact ones."""
-    global _voice
-    if _voice is None:
-        try:
-            out = subprocess.run(["say", "-v", "?"], capture_output=True, text=True, timeout=5).stdout
-            best, best_score = "", (-1, 0)
-            for line in out.splitlines():
-                m = re.match(r"^(.+?)\s{2,}[a-z]{2,3}[_-][A-Za-z]{2,}", line)
-                if not m:
-                    continue
-                name = m.group(1).strip()
-                base = name.split(" (")[0]
-                if base in CALM_VOICES:
-                    score = (2 if "Premium" in name else 1 if "Enhanced" in name else 0, -CALM_VOICES.index(base))
-                    if score > best_score:
-                        best, best_score = name, score
-            _voice = best
-        except Exception:
-            _voice = ""
-    return _voice or None
-
-
-def speak(text: str, funny: bool = False) -> None:  # funny is ignored: no robot voice any more
-    """Say a short line out loud, slowly and softly (best effort, never blocks, never raises)."""
-    try:
-        if SYSTEM == "Darwin":
-            voice = _calm_voice()
-            cmd = ["say", *(["-v", voice] if voice else []), "-r", "150", f"[[volm 0.55]] {text}"]  # slow, quiet
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        elif SYSTEM == "Windows":
-            safe = text.replace("'", "")
-            ps = ("Add-Type -AssemblyName System.Speech; $s = New-Object System.Speech.Synthesis.SpeechSynthesizer; "
-                  f"$s.Rate = -2; $s.Volume = 60; $s.Speak('{safe}')")
-            subprocess.Popen(["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", ps],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=0x08000000)
-        else:
-            tool = shutil.which("spd-say") or shutil.which("espeak-ng") or shutil.which("espeak")
-            if tool:
-                args = ["-r", "-30", "-i", "-20", text] if tool.endswith("spd-say") else ["-s", "135", "-a", "70", "-v", "en+f3", text]
-                subprocess.Popen([tool, *args], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
-
-
 def send_notification(
     title: str,
     message: str,
@@ -364,11 +308,6 @@ def send_notification(
 
     if play_snd and get("sound_enabled", True):
         result["sound"] = play_sound(sound, volume)
-        if get("voice_enabled", False):
-            import random
-            lines = next((v for k, v in SPOKEN.items() if title.endswith(k)), None)
-            if lines:
-                speak(random.choice(lines), get("voice_funny", False))
     return result
 
 
