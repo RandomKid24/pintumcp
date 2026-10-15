@@ -418,6 +418,8 @@ def main() -> None:
                 if body.get("app"):
                     subprocess.run(["open", "-b", body["app"]], check=False)
                 self.hide_toast()
+            elif kind == "toastclose":
+                self.hide_toast()
             elif kind == "clear":
                 status.clear_finished()
                 self.tick_(None)
