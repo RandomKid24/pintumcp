@@ -20,7 +20,7 @@ ICONS = HERE / "assets" / "menubar"
 SIZE = (18, 16)  # points; the PNGs are exactly 2x
 NEEDS_YOU = ("approval", "error", "question")
 WIDTH = 380
-TOAST_W, TOAST_H, TOAST_SECONDS = 360, 92, 5.5
+TOAST_W, TOAST_H, TOAST_SECONDS = 360, 100, 5.5
 
 
 def frames_for(name: str) -> list:
